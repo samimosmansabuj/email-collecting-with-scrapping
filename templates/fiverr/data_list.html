@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Your URLs</h2>
+<p><a href="{% url 'scrap_fiverr_data' %}" class="btn btn-primary">Add new</a></p>
+<table>
+    <tr>
+        <th>Username</th>
+        <th>Email</th>
+        <th>Repeated</th>
+        <th>Country</th>
+        <th>Price Tag</th>
+        <th>Proficiency</th>
+        <th>Category</th>
+        <th>Sub-category</th>
+        <th>Review Description</th>
+    </tr>
+    {% for data in data_list %}
+    <tr>
+        <td>{{ data.username }}</td>
+        <td>{{ data.email }}</td>
+        <td>{{ data.repeated }}</td>
+        <td>{{ data.country }}</td>
+        <td>{{ data.price_tag }}</td>
+        <td>{{ data.proficiency }}</td>
+        <td>{{ data.category }}</td>
+        <td>{{ data.sub_category }}</td>
+        <td>{{ data.review_description|truncatechars:80 }}</td>    </tr>
+    {% empty %}
+    <tr>
+        <td colspan="14">No data available.</td>
+    </tr>
+    {% endfor %}
+</table>
+
+{% endblock %}

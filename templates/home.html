@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block content %}
+<h1>Welcome to {{ business_name }}</h1>
+<p>{{ business_description }}</p>
+{% if user.is_authenticated %}
+<p>Go to <a href="{% url 'dashboard' %}">Dashboard</a>.</p>
+{% else %}
+<p><a href="{% url 'login' %}">Login</a> or <a href="">Register</a> to start scraping.</p>
+{% endif %}
+{% endblock %}

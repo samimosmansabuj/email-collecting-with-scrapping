@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #243447;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #1a2530;
+  }
+</style>
+
+
+
+<form method="post">
+  {% csrf_token %}
+  <h2>Add Target</h2>
+
+  <label for="category">Category</label>
+  <select id="category" name="category" required>
+    <option value="">-- Select Category --</option>
+    <option value="webdev">Web Development</option>
+    <option value="graphics">Graphics</option>
+    <option value="ai">AI</option>
+    <option value="automation">Automation</option>
+    <option value="programming">Programming</option>
+  </select>
+
+  <label for="subcategory">Sub-category</label>
+  <select id="subcategory" name="subcategory" required>
+    <option value="">-- Select Sub-category --</option>
+  </select>
+
+  <label for="urltype">URL Type</label>
+  <select id="urltype" name="urltype" required>
+    <option value="">-- Select Sub-category --</option>
+    <option value="profile">Profile</option>
+    <option value="gig">Gig</option>
+  </select>
+
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+  <label for="url">URL</label>
+  <input type="url" id="url" name="url" placeholder="https://fiverr.com/username/gig-slug/" required>
+
+  <label for="html_code">HTML Code</label>
+  <textarea id="html_code" name="html_code" rows="8" placeholder="Paste raw HTML code here..."></textarea>
+
+  <button type="submit">Submit</button>
+</form>
+
+<script>
+  const subCategories = {
+    webdev: ["Web Development", "App Development", "Custom Software Development", "Machine Learning/AL"],
+    graphics: ["Logo Design", "Animation", "Video Editing", "Graphics Design", "Banner Design"],
+    automation: ["Web Scraping", "Bots", "Workflow Automation"],
+    programming: ["Python", "Javascripts", "Node.js", "Ract.js", "Others"]
+  };
+
+  document.getElementById("category").addEventListener("change", function () {
+    const cat = this.value;
+    const subcatSelect = document.getElementById("subcategory");
+    subcatSelect.innerHTML = '<option value="">-- Select Sub-category --</option>';
+    if (subCategories[cat]) {
+      subCategories[cat].forEach(sc => {
+        const opt = document.createElement("option");
+        opt.value = sc.toLowerCase().replace(/\s+/g, "-");
+        opt.textContent = sc;
+        subcatSelect.appendChild(opt);
+      });
+    }
+  });
+</script>
+{% endblock %}

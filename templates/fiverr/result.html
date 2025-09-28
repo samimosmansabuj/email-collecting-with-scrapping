@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Results for {{ target.url }}</h2>
+<ul>
+    <li>
+        Success: <strong>{{success_count}}</strong><br>
+    </li>
+    <li>
+        Not Fount: <strong>{{not_found_count}}</strong><br>
+    </li>
+    <li>
+        Duplicated: <strong>{{duplicated_count}}</strong><br>
+    </li>
+    <li>
+        Failed: <strong>{{failed_count}}</strong><br>
+    </li>
+</ul>
+{% endblock %}

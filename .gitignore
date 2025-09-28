@@ -1,0 +1,10 @@
+file
+template
+
+*pyc
+*png
+*jpg
+
+.env
+
+db.sqlite3
