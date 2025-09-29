@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
-<h2>Your URLs</h2>
+<h2>Total Collection Email: {{ count }}</h2>
 <p><a href="{% url 'scrap_fiverr_data' %}" class="btn btn-primary">Add new</a></p>
 <table>
     <tr>
-        <th>Username</th>
+        <th>No.</th>
         <th>Email</th>
         <th>Repeated</th>
         <th>Country</th>
@@ -16,7 +16,7 @@
     </tr>
     {% for data in data_list %}
     <tr>
-        <td>{{ data.username }}</td>
+        <td>{{ forloop.counter|stringformat:"02d" }}</td>
         <td>{{ data.email }}</td>
         <td>{{ data.repeated }}</td>
         <td>{{ data.country }}</td>

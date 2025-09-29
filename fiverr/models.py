@@ -5,9 +5,13 @@ class CompleteGigDetails(models.Model):
     DETAILS_TYPE = [("gig", "gig"), ("profile", "profile")]
     username = models.CharField(max_length=50)
     details_type = models.CharField(max_length=10, choices=DETAILS_TYPE, default="gig")
-    url = models.CharField(max_length=255)
+    url = models.CharField(max_length=255, unique=True)
+    
     total_reviews = models.PositiveIntegerField(default=0)
+    total_scrapping = models.PositiveIntegerField(default=0)
+    collecting_email = models.PositiveIntegerField(default=0)
     total_update = models.PositiveIntegerField(default=1)
+    
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     

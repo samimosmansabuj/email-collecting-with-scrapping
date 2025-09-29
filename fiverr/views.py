@@ -9,7 +9,9 @@ from django.contrib import messages
 
 def fiverr_data(request):
     data_list = ReviewListWithEmail.objects.all()
-    return render(request, "fiverr/data_list.html", {"data_list": data_list, "count": len("data_list")})
+    return render(request, "fiverr/data_list.html", {
+        "data_list": data_list[:20], "count": len(data_list)
+    })
 
 class ScrapFiverrDataView(View):
     template_name = "fiverr/scrapping_form.html"
@@ -21,14 +23,14 @@ class ScrapFiverrDataView(View):
     def get(self, request, *args, **kwargs):
         return render(request, self.template_name)
     
-    def username_and_url_check(self, username, url, total_reviews_count):
+    def username_and_url_check(self, username, url, total_reviews):
         if CompleteGigDetails.objects.filter(username = username, url = url).exists():
             get_object = CompleteGigDetails.objects.get(username = username, url = url)
-            if get_object.total_reviews == total_reviews_count:
-                return True, False
+            if int(get_object.total_reviews) == int(total_reviews):
+                return True, False # existing, updated
             else:
                 get_object.total_update += 1
-                get_object.total_reviews = total_reviews_count
+                get_object.total_reviews = total_reviews
                 get_object.save()
                 return False, True # existing, updated
         return False, False # existing, updated
@@ -89,13 +91,14 @@ class ScrapFiverrDataView(View):
         urltype = request.POST.get("urltype")
         username = request.POST.get("username")
         url = request.POST.get("url")
+        total_reviews = request.POST.get("total_reviews")
         html_code = request.POST.get("html_code")
         
         # Scrapping html code-----
         all_reviews, total_reviews_count = self.scrapping_all_reviews(html_code, urltype)
         
         # check username and gig is already scrapping or not----
-        existing, updated = self.username_and_url_check(username, url, total_reviews_count)
+        existing, updated = self.username_and_url_check(username, url, total_reviews)
         if existing:
             message = "This Gig/Profile already Scrapping!"
             messages.warning(request, message)
@@ -107,8 +110,10 @@ class ScrapFiverrDataView(View):
                 username = username,
                 details_type = urltype,
                 url = url,
-                total_reviews = total_reviews_count,
+                total_reviews = total_reviews,
             )
+        
+        
         
         for i, review in enumerate(all_reviews, start=1):
             data = self.get_review_data(review, urltype)
