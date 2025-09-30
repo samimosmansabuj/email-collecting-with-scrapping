@@ -2,6 +2,6 @@
 {% block content %}
 <h2>Dashboard</h2>
 <p>Total Scrapping Email: {{ total_scrapping }}</p>
-<p><a href="">Add new target URL</a></p>
+<p><a href="{% url 'scrap_fiverr_data' %}">Add New Target (Fiverr)</a></p>
 <p><a href="">View your URLs</a></p>
 {% endblock %}

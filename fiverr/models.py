@@ -1,4 +1,5 @@
 from django.db import models
+from core.models import Category, SubCategory
 import re
 
 class CompleteGigDetails(models.Model):
@@ -36,8 +37,8 @@ class ReviewListWithEmail(models.Model):
     proficiency = models.CharField(max_length=55, choices=PROFICIENCY, blank=True, null=True)
     time_text = models.CharField(max_length=55, default="N/A")
     count = models.PositiveIntegerField(default=0)
-    category = models.CharField(max_length=55, blank=True, null=True)
-    sub_category = models.CharField(max_length=55, blank=True, null=True)
+    category = models.ForeignKey(Category, on_delete=models.SET_NULL, blank=True, null=True)
+    sub_category = models.ForeignKey(SubCategory, on_delete=models.SET_NULL, blank=True, null=True)
     review_description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
@@ -73,5 +74,9 @@ class ReviewListWithEmail(models.Model):
         return f"{self.username} | {self.email} | {self.proficiency}"
     
 
-    
+class InvalidUsernameEmail(models.Model):
+    username = models.CharField(max_length=50)
+    status_code = models.CharField(max_length=10, blank=True, null=True)
+    def __str__(self):
+        return self.username
 

@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from django.views import View
 from bs4 import BeautifulSoup
@@ -6,12 +6,22 @@ import time
 from .utils import EmailGenerate
 from django.urls import reverse
 from django.contrib import messages
+from django.http import JsonResponse
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_GET
 
 def fiverr_data(request):
-    data_list = ReviewListWithEmail.objects.all()
+    data_list = ReviewListWithEmail.objects.all().order_by("-updated_at")
     return render(request, "fiverr/data_list.html", {
         "data_list": data_list[:20], "count": len(data_list)
     })
+
+@require_GET
+def get_subcategories(request, category_slug):
+    category = get_object_or_404(Category, slug=category_slug)
+    subs = SubCategory.objects.filter(category=category).values("id", "name", "slug")
+    data = list(subs)
+    return JsonResponse({"ok": True, "results": data, "count": len(data)}, status=200)
 
 class ScrapFiverrDataView(View):
     template_name = "fiverr/scrapping_form.html"
@@ -21,9 +31,11 @@ class ScrapFiverrDataView(View):
     failed_count = 0
 
     def get(self, request, *args, **kwargs):
-        return render(request, self.template_name)
+        context = {}
+        context["caregory"] = Category.objects.all()
+        return render(request, self.template_name, context)
     
-    def username_and_url_check(self, username, url, total_reviews):
+    def username_and_url_check(self, username, url, total_reviews, total_reviews_count):
         if CompleteGigDetails.objects.filter(username = username, url = url).exists():
             get_object = CompleteGigDetails.objects.get(username = username, url = url)
             if int(get_object.total_reviews) == int(total_reviews):
@@ -31,6 +43,7 @@ class ScrapFiverrDataView(View):
             else:
                 get_object.total_update += 1
                 get_object.total_reviews = total_reviews
+                get_object.total_scrapping = total_reviews_count
                 get_object.save()
                 return False, True # existing, updated
         return False, False # existing, updated
@@ -75,19 +88,25 @@ class ScrapFiverrDataView(View):
     def get_generate_email(self, username: str):
         email = f"{username}@gmail.com"
         email_validation = EmailGenerate(email)
-        status, msg = email_validation.full_email_check()
+        status, msg, code = email_validation.full_email_check()
         print(msg)
         if status:
             return email
         else:
+            if (code in (550)):
+                InvalidUsernameEmail.objects.create(username=username, status_code=code)
             return None
     
     def has_email(self, data):
         return "email" in data and bool(data["email"])
     
     def post(self, request, *args, **kwargs):
-        category = request.POST.get("category")
-        subcategory = request.POST.get("subcategory")
+        category_slug = request.POST.get("category")
+        subcategory_slug = request.POST.get("subcategory")
+        
+        category = Category.objects.get(slug=category_slug) if category_slug else None
+        subcategory = SubCategory.objects.get(slug=subcategory_slug) if subcategory_slug else None
+        
         urltype = request.POST.get("urltype")
         username = request.POST.get("username")
         url = request.POST.get("url")
@@ -98,7 +117,7 @@ class ScrapFiverrDataView(View):
         all_reviews, total_reviews_count = self.scrapping_all_reviews(html_code, urltype)
         
         # check username and gig is already scrapping or not----
-        existing, updated = self.username_and_url_check(username, url, total_reviews)
+        existing, updated = self.username_and_url_check(username, url, total_reviews, total_reviews_count)
         if existing:
             message = "This Gig/Profile already Scrapping!"
             messages.warning(request, message)
@@ -111,10 +130,10 @@ class ScrapFiverrDataView(View):
                 details_type = urltype,
                 url = url,
                 total_reviews = total_reviews,
+                total_scrapping = total_reviews_count,
             )
         
-        
-        
+
         for i, review in enumerate(all_reviews, start=1):
             data = self.get_review_data(review, urltype)
             print(f"---------- Start For Review #{i}: {data["username"]}----------")
@@ -127,6 +146,10 @@ class ScrapFiverrDataView(View):
                 message = "❌ username already Exist!"
                 print(message)
                 self.duplicated_count += 1
+            elif InvalidUsernameEmail.objects.filter(username=data["username"]).exists():
+                message = "❌ username already checking & invalid!"
+                self.not_found_count += 1
+                print(message)
             else:
                 # Email Generate & Check Email Valid or Not-----------------------
                 time.sleep(1)
@@ -153,7 +176,6 @@ class ScrapFiverrDataView(View):
                                 sub_category = subcategory,
                                 review_description = data["review_description"]
                             )
-                            print(object)
                             self.success_count += 1
                         except Exception as e:
                             message = f"Get issues add new row!: {str(e)}"
@@ -180,4 +202,17 @@ def result(request):
     }
     return render(request, "fiverr/result.html", context)
 
-
+def verify_fiverr_url(request):
+    context = {}
+    if request.method == 'POST':
+        urltype = request.POST.get("urltype")
+        username = request.POST.get("username")
+        url = request.POST.get("url")
+        if CompleteGigDetails.objects.filter(username=username, url=url, details_type=urltype).exists():
+            data = CompleteGigDetails.objects.get(username=username, url=url, details_type=urltype)
+        else:
+            data = None
+        context["data"] = data
+        return render(request, "fiverr/verify_fiverr.html", context)
+    else:
+        return render(request, "fiverr/verify_fiverr.html", context)

@@ -50,15 +50,13 @@
   <label for="category">Category</label>
   <select id="category" name="category" required>
     <option value="">-- Select Category --</option>
-    <option value="webdev">Web Development</option>
-    <option value="graphics">Graphics</option>
-    <option value="ai">AI</option>
-    <option value="automation">Automation</option>
-    <option value="programming">Programming</option>
+    {% for caregory in caregory %}
+    <option value="{{caregory.slug}}">{{caregory.name}}</option>
+    {% endfor %}
   </select>
 
   <label for="subcategory">Sub-category</label>
-  <select id="subcategory" name="subcategory" required>
+  <select id="subcategory" name="subcategory" required disabled>
     <option value="">-- Select Sub-category --</option>
   </select>
 
@@ -85,24 +83,40 @@
 </form>
 
 <script>
-  const subCategories = {
-    webdev: ["Web Development", "Wordpress", "App Development", "Custom Software Development", "Machine Learning/AL", "CMS", "Website Builder"],
-    graphics: ["Logo Design", "Animation", "Video Editing", "Graphics Design", "Banner Design"],
-    automation: ["Web Scraping", "Bots", "Workflow Automation"],
-    programming: ["Python", "Javascripts", "Node.js", "Ract.js", "Others"]
-  };
+  const categoryEl = document.getElementById('category');
+  const subcatEl   = document.getElementById('subcategory');
 
-  document.getElementById("category").addEventListener("change", function () {
-    const cat = this.value;
-    const subcatSelect = document.getElementById("subcategory");
-    subcatSelect.innerHTML = '<option value="">-- Select Sub-category --</option>';
-    if (subCategories[cat]) {
-      subCategories[cat].forEach(sc => {
-        const opt = document.createElement("option");
-        opt.value = sc.toLowerCase().replace(/\s+/g, "-");
-        opt.textContent = sc;
-        subcatSelect.appendChild(opt);
+  function resetSubcats(placeholder='-- Select Sub-category --', disable=true) {
+    subcatEl.innerHTML = `<option value="">${placeholder}</option>`;
+    subcatEl.disabled = disable;
+  }
+
+  categoryEl.addEventListener('change', async (e) => {
+    const slug = e.target.value;
+    if (!slug) { resetSubcats(); return; }
+
+    resetSubcats('Loading...', true);
+
+    try {
+      const res = await fetch(`/api/subcategories/${encodeURIComponent(slug)}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
       });
+      const data = await res.json();
+
+      if (!data.ok) { resetSubcats('No sub-categories found', true); return; }
+
+      resetSubcats('-- Select Sub-category --', false);
+      data.results.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.slug;   // will post the slug
+        opt.textContent = s.name;
+        subcatEl.appendChild(opt);
+      });
+
+      if (data.results.length === 0) resetSubcats('No sub-categories', true);
+    } catch (err) {
+      console.error('Subcategory fetch error:', err);
+      resetSubcats('Failed to load', true);
     }
   });
 </script>

@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #243447;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #1a2530;
+  }
+
+  /* Verify card */
+  .verify-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 640px;
+    margin: 20px auto;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+  }
+
+  .verify-card__header {
+    margin-bottom: 12px;
+  }
+
+  .verify-card__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .verify-card__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #243447;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+
+  .verify-card__name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .verify-card__meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .muted {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  .link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 12px;
+  }
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .verify-card__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .stat {
+    background: #f9fafb;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .stat__label {
+    color: #6b7280;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .stat__value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* Empty state */
+  .empty-state {
+    background: #fff;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    text-align: center;
+    padding: 28px;
+    max-width: 640px;
+    margin: 20px auto;
+    color: #374151;
+  }
+
+  .empty-state__icon {
+    font-size: 28px;
+  }
+
+  .empty-state__title {
+    margin: 8px 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .empty-state__text {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+  }
+</style>
+
+{% if data %}
+<div class="verify-card">
+  <div class="verify-card__header">
+    <div class="verify-card__title">
+      <span class="verify-card__avatar">{{ data.username|first|upper }}</span>
+      <div>
+        <h3 class="verify-card__name">{{ data.username|default:"—" }}</h3>
+        <div class="verify-card__meta">
+          <span class="pill">{{ data.details_type|default:"—" }}</span>
+          <span class="muted">URL:</span>
+          <a href="{{ data.url }}" target="_blank" rel="noopener" class="link">
+            {{ data.url|default:"—" }}
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="verify-card__grid">
+    <div class="stat">
+      <div class="stat__label">Total Reviews</div>
+      <div class="stat__value">{{ data.total_reviews|default:"0" }}</div>
+    </div>
+    <div class="stat">
+      <div class="stat__label">Total Scrapping</div>
+      <div class="stat__value">{{ data.total_scrapping|default:"0" }}</div>
+    </div>
+  </div>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state__icon">🗂️</div>
+  <h3 class="empty-state__title">No data</h3>
+  <p class="empty-state__text">Submit the form to see verification details here.</p>
+</div>
+{% endif %}
+
+
+
+<form method="post">
+  {% csrf_token %}
+  <h2>Fiverr URL Verify</h2>
+
+  <label for="urltype">URL Type</label>
+  <select id="urltype" name="urltype" required>
+    <option value="">-- Select Sub-category --</option>
+    <option value="profile">Profile</option>
+    <option value="gig">Gig</option>
+  </select>
+
+  <label for="username">Username</label>
+  <input type="text" id="username" name="username" placeholder="Enter username" required>
+
+  <label for="url">URL</label>
+  <input type="url" id="url" name="url" placeholder="https://fiverr.com/username/gig-slug/" required>
+
+  <button type="submit">Submit</button>
+</form>
+{% endblock %}

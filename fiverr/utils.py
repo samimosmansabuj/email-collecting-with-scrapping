@@ -32,8 +32,7 @@ class EmailGenerate:
             server.mail("check@example.com")
             code, message = server.rcpt(email)
             server.quit()
-
-            return (code in (250, 251)), f"{code} {message.decode() if isinstance(message, bytes) else message}"
+            return code, f"{code} {message.decode() if isinstance(message, bytes) else message}"
 
         except Exception as e:
             return False, f"Error: {e}"
@@ -52,12 +51,12 @@ class EmailGenerate:
             msg = f"{email} => ❌ Domain not valid (no MX records)"
             return False, msg
 
-        valid, msg = self.smtp_check(email)
-        if valid:
+        code, msg = self.smtp_check(email)
+        if (code in (250, 251)):
             msg = f"{email} => ✅ Email exists (SMTP verified)"
-            return True, msg
+            return True, msg, code
         else:
             msg = f"{email} => ⚠️ Domain valid, but SMTP check failed ({msg})"
-            return False, msg
+            return False, msg, code
 
 
