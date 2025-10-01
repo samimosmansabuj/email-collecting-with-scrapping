@@ -156,41 +156,44 @@ class ScrapFiverrDataView(View):
                 self.not_found_count += 1
                 print(message)
             else:
-                # Email Generate & Check Email Valid or Not-----------------------
-                time.sleep(1)
-                
-                generate_email = self.get_generate_email(data["username"])
-                if generate_email is None:
-                    message = "❌ Get not Email by This username!"
-                    print(message)
-                    self.not_found_count += 1 
-                else:
-                    data["email"] = generate_email
-                    # Data Save-----------------------------------------------------------
-                    if self.has_email(data):
-                        try:
-                            object = ReviewListWithEmail.objects.create(
-                                username = data["username"],
-                                email = data["email"],
-                                repeated = True if data["repeated"] else False,
-                                country = data["country"],
-                                price_tag = data["price_tag"],
-                                time_text = data["time_text"],
-                                count = 0,
-                                category = category,
-                                sub_category = subcategory,
-                                review_description = data["review_description"]
-                            )
-                            self.success_count += 1
-                        except Exception as e:
-                            message = f"Get issues add new row!: {str(e)}"
-                            print(message)
-                            self.failed_count += 1
-                    else:
+                try:
+                    # Email Generate & Check Email Valid or Not-----------------------
+                    time.sleep(1)
+                    
+                    generate_email = self.get_generate_email(data["username"])
+                    if generate_email is None:
+                        message = "❌ Get not Email by This username!"
+                        print(message)
                         self.not_found_count += 1 
-                
-                # Wait for 1 Second
-                time.sleep(1)
+                    else:
+                        data["email"] = generate_email
+                        # Data Save-----------------------------------------------------------
+                        if self.has_email(data):
+                            try:
+                                object = ReviewListWithEmail.objects.create(
+                                    username = data["username"],
+                                    email = data["email"],
+                                    repeated = True if data["repeated"] else False,
+                                    country = data["country"],
+                                    price_tag = data["price_tag"],
+                                    time_text = data["time_text"],
+                                    count = 0,
+                                    category = category,
+                                    sub_category = subcategory,
+                                    review_description = data["review_description"]
+                                )
+                                self.success_count += 1
+                            except Exception as e:
+                                message = f"Get issues add new row!: {str(e)}"
+                                print(message)
+                                self.failed_count += 1
+                        else:
+                            self.not_found_count += 1 
+                    
+                    # Wait for 1 Second
+                    time.sleep(1)
+                except Exception as e:
+                    print(f"Get Something Wrong Try/Except: {str(e)}")
             
             print(f"---------- End For Review #{i}: {data["username"]}----------")
             print("=============================================================")
