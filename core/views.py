@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect
-from django.contrib.auth import authenticate, login
+from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required, permission_required
 from fiverr.models import ReviewListWithEmail
 
@@ -17,3 +17,7 @@ def home(request):
 def dashboard(request):
     total_scrapping = ReviewListWithEmail.objects.all().count()
     return render(request, 'dashboard.html', {'total_scrapping': total_scrapping})
+
+def logoutview(request):
+    logout(request)
+    return redirect("home_page")

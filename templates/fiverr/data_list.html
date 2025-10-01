@@ -1,8 +1,75 @@
 {% extends "base.html" %}
 {% block content %}
+<style>
+    .btn {
+        display: inline-block;
+        padding: 8px 14px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-primary {
+        background: #243447;
+        color: #fff;
+    }
+
+    .btn-primary:hover {
+        background: #1a2530;
+        transform: translateY(-1px);
+    }
+
+    h2 {
+        margin-top: 0;
+        color: #243447;
+    }
+
+    table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 20px;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+    }
+
+    th {
+        background: #243447;
+        color: #fff;
+        padding: 12px 10px;
+        text-align: left;
+        font-size: 14px;
+    }
+
+    td {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        font-size: 14px;
+    }
+
+    tr:nth-child(even) {
+        background: #f9f9f9;
+    }
+
+    tr:hover {
+        background: #f1f7ff;
+    }
+
+    .no-data {
+        text-align: center;
+        padding: 20px;
+        font-style: italic;
+        color: #666;
+    }
+</style>
+
 <h2>Total Collection Email: {{ count }}</h2>
-<p><a href="{% url 'scrap_fiverr_data' %}" class="btn btn-primary">Add new</a></p>
-<p><a href="{% url 'verify_fiverr_url' %}" class="btn btn-primary">Fiverr Verify</a></p>
+<p>
+    <a href="{% url 'scrap_fiverr_data' %}" class="btn btn-primary">➕ Add New</a>
+    <a href="{% url 'verify_fiverr_url' %}" class="btn btn-primary">✔ Fiverr Verify</a>
+</p>
+
 <table>
     <tr>
         <th>No.</th>
@@ -25,10 +92,11 @@
         <td>{{ data.proficiency }}</td>
         <td>{{ data.category }}</td>
         <td>{{ data.sub_category }}</td>
-        <td>{{ data.review_description|truncatechars:80 }}</td>    </tr>
+        <td>{{ data.review_description|truncatechars:80 }}</td>
+    </tr>
     {% empty %}
     <tr>
-        <td colspan="14">No data available.</td>
+        <td colspan="9" class="no-data">No data available.</td>
     </tr>
     {% endfor %}
 </table>

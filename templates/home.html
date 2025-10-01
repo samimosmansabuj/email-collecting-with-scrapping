@@ -1,10 +1,70 @@
 {% extends "base.html" %}
 {% block content %}
-<h1>Welcome to {{ business_name }}</h1>
-<p>{{ business_description }}</p>
-{% if user.is_authenticated %}
-<p>Go to <a href="{% url 'dashboard' %}">Dashboard</a>.</p>
-{% else %}
-<p><a href="{% url 'login' %}">Login</a> or <a href="">Register</a> to start scraping.</p>
-{% endif %}
+<style>
+    .hero {
+        max-width: 800px;
+        margin: 60px auto;
+        text-align: center;
+        padding: 40px 20px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    }
+
+    .hero h1 {
+        font-size: 32px;
+        color: #243447;
+        margin-bottom: 16px;
+    }
+
+    .hero p {
+        font-size: 16px;
+        color: #555;
+        margin-bottom: 24px;
+    }
+
+    .hero a {
+        display: inline-block;
+        padding: 12px 20px;
+        border-radius: 6px;
+        text-decoration: none;
+        font-weight: bold;
+        transition: background 0.3s, transform 0.2s;
+    }
+
+    .btn-primary {
+        background: #243447;
+        color: #fff;
+        margin-right: 12px;
+    }
+
+    .btn-primary:hover {
+        background: #1a2530;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: #f1f1f1;
+        color: #333;
+    }
+
+    .btn-secondary:hover {
+        background: #e4e4e4;
+        transform: translateY(-1px);
+    }
+</style>
+
+
+<div class="hero">
+    <h1>👋 Welcome to {{ business_name }}</h1>
+    <p>{{ business_description }}</p>
+
+    {% if user.is_authenticated %}
+    <a href="{% url 'dashboard' %}" class="btn-primary">📊 Go to Dashboard</a>
+    {% else %}
+    <a href="{% url 'login' %}" class="btn-primary">🔑 Login</a>
+    <a href="#" class="btn-secondary">📝 Register</a>
+    {% endif %}
+</div>
+
 {% endblock %}

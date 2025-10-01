@@ -8,14 +8,17 @@ from django.urls import reverse
 from django.contrib import messages
 from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
+from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
 
+@login_required
 def fiverr_data(request):
     data_list = ReviewListWithEmail.objects.all().order_by("-updated_at")
     return render(request, "fiverr/data_list.html", {
         "data_list": data_list[:20], "count": len(data_list)
     })
 
+login_required
 @require_GET
 def get_subcategories(request, category_slug):
     category = get_object_or_404(Category, slug=category_slug)
@@ -23,6 +26,8 @@ def get_subcategories(request, category_slug):
     data = list(subs)
     return JsonResponse({"ok": True, "results": data, "count": len(data)}, status=200)
 
+
+@method_decorator(login_required, name='dispatch')
 class ScrapFiverrDataView(View):
     template_name = "fiverr/scrapping_form.html"
     success_count = 0
@@ -93,7 +98,7 @@ class ScrapFiverrDataView(View):
         if status:
             return email
         else:
-            if (code in (550)):
+            if (code in (550,)):
                 InvalidUsernameEmail.objects.create(username=username, status_code=code)
             return None
     
@@ -193,6 +198,7 @@ class ScrapFiverrDataView(View):
         url = reverse("result")
         return redirect(f"{url}?success={self.success_count}&not_found={self.not_found_count}&dup={self.duplicated_count}&fail={self.failed_count}")
 
+@login_required
 def result(request):
     context = {
         "success_count": request.GET.get("success", 0),
@@ -202,6 +208,7 @@ def result(request):
     }
     return render(request, "fiverr/result.html", context)
 
+@login_required
 def verify_fiverr_url(request):
     context = {}
     if request.method == 'POST':
