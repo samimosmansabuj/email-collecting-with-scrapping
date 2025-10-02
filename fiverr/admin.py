@@ -39,8 +39,14 @@ class ReviewListWithEmailAdmin(admin.ModelAdmin):
     ordering = ("-updated_at", "-created_at")
     date_hierarchy = "updated_at"
     list_per_page = 50
-    # If Category/SubCategory are set with search_fields in their own Admin,
-    # you can enable autocompletes:
-    # autocomplete_fields = ("category", "sub_category")
 
-admin.site.register(InvalidUsernameEmail)
+
+@admin.register(InvalidUsernameEmail)
+class InvalidUsernameEmailAdmin(admin.ModelAdmin):
+    list_display = (
+        "username", "status_code"
+    )
+    search_fields = (
+        "username", "status_code"
+    )
+    list_per_page = 50
