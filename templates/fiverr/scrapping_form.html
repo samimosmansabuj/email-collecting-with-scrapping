@@ -83,10 +83,17 @@
 </form>
 
 <script>
-  const categoryEl = document.getElementById('category');
-  const subcatEl   = document.getElementById('subcategory');
+  const form = document.querySelector('form');
+  form.addEventListener('submit', (e) => {
+    const textarea = document.getElementById('html_code');
+    textarea.value = btoa(unescape(encodeURIComponent(textarea.value))); // encode HTML
+  });
 
-  function resetSubcats(placeholder='-- Select Sub-category --', disable=true) {
+
+  const categoryEl = document.getElementById('category');
+  const subcatEl = document.getElementById('subcategory');
+
+  function resetSubcats(placeholder = '-- Select Sub-category --', disable = true) {
     subcatEl.innerHTML = `<option value="">${placeholder}</option>`;
     subcatEl.disabled = disable;
   }

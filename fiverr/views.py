@@ -10,6 +10,7 @@ from django.http import JsonResponse
 from django.contrib.auth.decorators import login_required
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_GET
+import base64
 
 @login_required
 def fiverr_data(request):
@@ -116,7 +117,8 @@ class ScrapFiverrDataView(View):
         username = request.POST.get("username")
         url = request.POST.get("url")
         total_reviews = request.POST.get("total_reviews")
-        html_code = request.POST.get("html_code")
+        html_code_encoded = request.POST.get("html_code")
+        html_code = base64.b64decode(html_code_encoded).decode("utf-8")
         
         # Scrapping html code-----
         all_reviews, total_reviews_count = self.scrapping_all_reviews(html_code, urltype)
