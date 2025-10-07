@@ -99,7 +99,7 @@ class ScrapFiverrDataView(View):
         if status:
             return email
         else:
-            if (code in (550,)):
+            if (code in (550, 350)):
                 InvalidUsernameEmail.objects.create(username=username, status_code=code)
             return None
     

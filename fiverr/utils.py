@@ -49,7 +49,7 @@ class EmailGenerate:
 
         if not mx_records:
             msg = f"{email} => ❌ Domain not valid (no MX records)"
-            return False, msg
+            return False, msg, 350
 
         code, msg = self.smtp_check(email)
         if (code in (250, 251)):

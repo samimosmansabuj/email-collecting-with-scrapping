@@ -1,6 +1,17 @@
 from django.db import models
 from django.utils.text import slugify
 
+class PremiumProfileLink(models.Model):
+    SOURCE = (
+        ("fiverr", "fiverr"),
+        ("freelancer", "freelancer"),
+    )
+    source = models.CharField(max_length=20, choices=SOURCE, blank=True, null=True)
+    url = models.URLField(max_length=255)
+    
+    def __str__(self):
+        return self.url
+
 class Category(models.Model):
     name = models.CharField(max_length=55)
     slug = models.SlugField(max_length=55, blank=True, null=True)
