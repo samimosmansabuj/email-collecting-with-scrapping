@@ -1,7 +1,8 @@
 from django.shortcuts import render, redirect
 from django.contrib.auth import logout
-from django.contrib.auth.decorators import login_required, permission_required
-from fiverr.models import ReviewListWithEmail
+from django.contrib.auth.decorators import login_required
+from fiverr.models import FiverrReviewListWithEmail
+from freelancerr.models import FreelancerReviewListWithEmail
 
 BUSINESS_NAME = "PyTeam"
 BUSINESS_DESC = ("AI Based Automation Software Company. Mainly using Python but we provide all kinds "
@@ -15,8 +16,9 @@ def home(request):
 
 @login_required
 def dashboard(request):
-    total_scrapping = ReviewListWithEmail.objects.all().count()
-    return render(request, 'dashboard.html', {'total_scrapping': total_scrapping})
+    total_scrapping_1 = FiverrReviewListWithEmail.objects.all().count()
+    total_scrapping_2 = FreelancerReviewListWithEmail.objects.all().count()
+    return render(request, 'dashboard.html', {'total_scrapping': total_scrapping_1+total_scrapping_2})
 
 def logoutview(request):
     logout(request)

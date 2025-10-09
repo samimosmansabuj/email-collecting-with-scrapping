@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block site_title %}
-<title>Fiverr Profile/Gig Scrapping - PyTeam</title>
+<title>Freelancer Profile/Gig Scrapping - PyTeam</title>
 {% endblock site_title %}
 
 {% block content %}
@@ -47,9 +47,9 @@
 
 
 
-<form method="post" action="{% url 'scrap_fiverr_data' %}">
+<form method="post" action="{% url 'scrap_freelancerr_data' %}">
   {% csrf_token %}
-  <h2>Add Fiverr Target</h2>
+  <h2>Add Freelancer Target</h2>
 
   <label for="category">Category</label>
   <select id="category" name="category" required>
@@ -67,8 +67,8 @@
   <label for="urltype">URL Type</label>
   <select id="urltype" name="urltype" required>
     <option value="">-- Select Sub-category --</option>
-    <option value="profile">Profile</option>
-    <option value="gig">Gig</option>
+    <option value="profile" selected>Profile</option>
+    <option value="project">Project</option>
   </select>
 
   <label for="username">Username</label>

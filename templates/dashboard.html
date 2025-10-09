@@ -83,8 +83,12 @@
     </div>
 
     <div class="dashboard-links">
+        <a href="{% url 'fiverr_data' %}" class="btn btn-primary">➕ Add New Target/List (Fiverr)</a>
+        <a href="{% url 'freelancerr_data' %}" class="btn btn-secondary">➕ Add New Target/List (Freelancer)</a>
+    </div>
+    <!-- <div class="dashboard-links">
         <a href="{% url 'scrap_fiverr_data' %}" class="btn btn-primary">➕ Add New Target (Fiverr)</a>
         <a href="{% url 'verify_fiverr_url' %}" class="btn btn-secondary">🔗 View Fiverr URLs (Verify)</a>
-    </div>
+    </div> -->
 </div>
 {% endblock %}

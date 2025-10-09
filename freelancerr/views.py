@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import *
 from core.models import InvalidUsernameEmail
+from fiverr.models import FiverrReviewListWithEmail
 from django.views import View
 from bs4 import BeautifulSoup
 import time
@@ -14,9 +15,9 @@ from django.views.decorators.http import require_GET
 import base64
 
 @login_required
-def fiverr_data(request):
-    data_list = FiverrReviewListWithEmail.objects.all().order_by("-updated_at")
-    return render(request, "fiverr/data_list.html", {
+def freelancer_data(request):
+    data_list = FreelancerReviewListWithEmail.objects.all().order_by("-updated_at")
+    return render(request, "freelancerr/data_list.html", {
         "data_list": data_list[:20], "count": len(data_list)
     })
 
@@ -30,8 +31,8 @@ def get_subcategories(request, category_slug):
 
 
 @method_decorator(login_required, name='dispatch')
-class ScrapFiverrDataView(View):
-    template_name = "fiverr/scrapping_form.html"
+class ScrapFreelancerDataView(View):
+    template_name = "freelancerr/scrapping_form.html"
     success_count = 0
     not_found_count = 0
     duplicated_count = 0
@@ -43,8 +44,8 @@ class ScrapFiverrDataView(View):
         return render(request, self.template_name, context)
     
     def username_and_url_check(self, username, url, total_reviews, total_reviews_count):
-        if FiverrCompleteGigDetails.objects.filter(username = username, url = url).exists():
-            get_object = FiverrCompleteGigDetails.objects.get(username = username, url = url)
+        if FreelancerCompleteProfileDetails.objects.filter(username = username, url = url).exists():
+            get_object = FreelancerCompleteProfileDetails.objects.get(username = username, url = url)
             if int(get_object.total_reviews) == int(total_reviews):
                 return True, False # existing, updated
             else:
@@ -58,40 +59,49 @@ class ScrapFiverrDataView(View):
     def scrapping_all_reviews(self, html, urltype):
         soup = BeautifulSoup(html, "html.parser")
         if urltype and urltype.lower() == "profile":
-            all_reviews = soup.find_all("span", class_="freelancer-review-item-wrapper")
+            all_reviews = soup.find_all("div", class_="MainContainer")
         else:
-            all_reviews = soup.find_all("li", class_="review-item-component")
+            all_reviews = soup.find_all("div", class_="MainContainer")
         total_reviews_count = len(all_reviews)
         print("Total reviews found:", total_reviews_count)
         return all_reviews, total_reviews_count
     
-    def safe_get_text(self, parent, tag, class_name=None):
+    def safe_get_text(self, parent, tag, class_name=None, index=None):
         if parent:
             element = parent.find(tag, class_=class_name) if class_name else parent.find(tag)
+            if index:
+                element = parent.find_all(tag, class_=class_name)[index] if class_name else parent.find_all(tag)[index]
             if element:
                 return element.get_text(strip=True)
         return "N/A"
     
-    def get_review_data(self, review, type=None) -> dict:
+    def get_review_data(self, review, type) -> dict:
         data = {}
         if type and type.lower() == "profile":
-            data["username"] = self.safe_get_text(review, "p", "l6pj4a1eb")
-            data["repeated"] = self.safe_get_text(review.find("div", class_="l6pj4a11o"), "p")
-            data["country"] = self.safe_get_text(review.find("div", class_="country"), "p")
-            data["time_text"] = self.safe_get_text(review, "time")
-            data["review_description"] = self.safe_get_text(review.find("div", class_="reliable-review-description review-description"), "p")
-            price_tag = review.find("p", string=lambda text: text and "$" in text) or review.find("p", string=lambda text: text and "US$" in text)
-            data["price_tag"] = price_tag.get_text(strip=True) if price_tag else "N/A"
+            u_c_t = review.find("div", class_="InfoContainer ng-star-inserted")
+            data["username"] = self.safe_get_text(u_c_t, "p", "text-small", 1)[1:]
+            data["name"] = self.safe_get_text(u_c_t, "p", "text-small", 0)
+            data["country"] = self.safe_get_text(u_c_t, "p", "text-small", 3)
+            data["time_text"] = self.safe_get_text(u_c_t, "span")
+            
+            project_price = review.find("p")
+            data["project"] = self.safe_get_text(project_price, "a")
+            data["price_tag"] = self.safe_get_text(project_price, "span", index=1)
+            data["review_description"] = self.safe_get_text(review, "p", index=1)
+            return data
         else:
-            data["username"] = self.safe_get_text(review, "p", "_66nk381cr")
-            data["repeated"] = self.safe_get_text(review.find("div", class_="_66nk38109"), "p")
-            data["country"] = self.safe_get_text(review.find("div", class_="country"), "p")
-            data["time_text"] = self.safe_get_text(review, "time")
-            data["review_description"] = self.safe_get_text(review.find("div", class_="reliable-review-description review-description"), "p")
-            price_tag = review.find("p", string=lambda text: text and "$" in text) or review.find("p", string=lambda text: text and "US$" in text)
-            data["price_tag"] = price_tag.get_text(strip=True) if price_tag else "N/A"
-        return data
-
+            u_c_t = review.find("div", class_="InfoContainer ng-star-inserted")
+            data["username"] = self.safe_get_text(u_c_t, "p", "text-small", 1)[1:]
+            data["name"] = self.safe_get_text(u_c_t, "p", "text-small", 0)
+            data["country"] = self.safe_get_text(u_c_t, "p", "text-small", 3)
+            data["time_text"] = self.safe_get_text(u_c_t, "span")
+            
+            project_price = review.find("p", class_="font-medium text-small")
+            data["project"] = self.safe_get_text(project_price, "a")
+            data["price_tag"] = self.safe_get_text(project_price, "span", index=1)
+            data["review_description"] = self.safe_get_text(review, "p", index=1)
+            return data
+        
     def get_generate_email(self, username: str):
         email = f"{username}@gmail.com"
         email_validation = EmailGenerate(email)
@@ -110,7 +120,6 @@ class ScrapFiverrDataView(View):
     def post(self, request, *args, **kwargs):
         category_slug = request.POST.get("category")
         subcategory_slug = request.POST.get("subcategory")
-        
         category = Category.objects.get(slug=category_slug) if category_slug else None
         subcategory = SubCategory.objects.get(slug=subcategory_slug) if subcategory_slug else None
         
@@ -118,37 +127,35 @@ class ScrapFiverrDataView(View):
         username = request.POST.get("username")
         url = request.POST.get("url")
         total_reviews = request.POST.get("total_reviews")
-        html_code_encoded = request.POST.get("html_code")
-        html_code = base64.b64decode(html_code_encoded).decode("utf-8")
+        html_code = base64.b64decode(request.POST.get("html_code")).decode("utf-8")
         
         # Scrapping html code-----
         all_reviews, total_reviews_count = self.scrapping_all_reviews(html_code, urltype)
-        
+                
         # check username and gig is already scrapping or not----
         existing, updated = self.username_and_url_check(username, url, total_reviews, total_reviews_count)
         if existing:
-            message = "This Gig/Profile already Scrapping!"
+            message = "This Project/Profile already Scrapping!"
             messages.warning(request, message)
             referer = request.META.get("HTTP_REFERER", "/")
             return redirect(referer)
         
         if updated is False:
-            FiverrCompleteGigDetails.objects.create(
+            FreelancerCompleteProfileDetails.objects.create(
                 username = username,
                 details_type = urltype,
                 url = url,
                 total_reviews = total_reviews,
                 total_scrapping = total_reviews_count,
             )
-        
 
         for i, review in enumerate(all_reviews, start=1):
             data = self.get_review_data(review, urltype)
             print(f"---------- Start For Review #{i}: {data["username"]}----------")
                         
             # CSV/Data Frame------------------------------------------------------
-            if FiverrReviewListWithEmail.objects.filter(username=data["username"]).exists():
-                get_review_object = FiverrReviewListWithEmail.objects.get(username=data["username"])
+            if FreelancerReviewListWithEmail.objects.filter(username=data["username"]).exists():
+                get_review_object = FreelancerReviewListWithEmail.objects.get(username=data["username"])
                 get_review_object.count += 1
                 get_review_object.save()
                 message = "❌ username already Exist!"
@@ -157,6 +164,10 @@ class ScrapFiverrDataView(View):
             elif InvalidUsernameEmail.objects.filter(username=data["username"]).exists():
                 message = "❌ username already checking & invalid!"
                 self.not_found_count += 1
+                print(message)
+            elif FiverrReviewListWithEmail.objects.filter(username=data["username"]).exists():
+                message = "❌ username already Exist in Fiverr List!"
+                self.duplicated_count += 1
                 print(message)
             else:
                 try:
@@ -173,10 +184,9 @@ class ScrapFiverrDataView(View):
                         # Data Save-----------------------------------------------------------
                         if self.has_email(data):
                             try:
-                                object = FiverrReviewListWithEmail.objects.create(
+                                object = FreelancerReviewListWithEmail.objects.create(
                                     username = data["username"],
                                     email = data["email"],
-                                    repeated = True if data["repeated"] else False,
                                     country = data["country"],
                                     price_tag = data["price_tag"],
                                     time_text = data["time_text"],
@@ -201,31 +211,31 @@ class ScrapFiverrDataView(View):
             print(f"---------- End For Review #{i}: {data["username"]}----------")
             print("=============================================================")
         
-        url = reverse("result")
+        url = reverse("freelancerr_result")
         return redirect(f"{url}?success={self.success_count}&not_found={self.not_found_count}&dup={self.duplicated_count}&fail={self.failed_count}")
 
 @login_required
-def result(request):
+def freelancer_result(request):
     context = {
         "success_count": request.GET.get("success", 0),
         "not_found_count": request.GET.get("not_found", 0),
         "duplicated_count": request.GET.get("dup", 0),
         "failed_count": request.GET.get("fail", 0),
     }
-    return render(request, "fiverr/result.html", context)
+    return render(request, "freelancerr/result.html", context)
 
 @login_required
-def verify_fiverr_url(request):
+def verify_freelancer_url(request):
     context = {}
     if request.method == 'POST':
         urltype = request.POST.get("urltype")
         username = request.POST.get("username")
         url = request.POST.get("url")
-        if FiverrCompleteGigDetails.objects.filter(username=username, url=url, details_type=urltype).exists():
-            data = FiverrCompleteGigDetails.objects.get(username=username, url=url, details_type=urltype)
+        if FreelancerCompleteProfileDetails.objects.filter(username=username, url=url, details_type=urltype).exists():
+            data = FreelancerCompleteProfileDetails.objects.get(username=username, url=url, details_type=urltype)
         else:
             data = None
         context["data"] = data
-        return render(request, "fiverr/verify_fiverr.html", context)
+        return render(request, "freelancerr/verify_fiverr.html", context)
     else:
-        return render(request, "fiverr/verify_fiverr.html", context)
+        return render(request, "freelancerr/verify_fiverr.html", context)

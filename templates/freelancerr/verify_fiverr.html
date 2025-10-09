@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block site_title %}
-<title>Fiverr Profile/Gig Verify - PyTeam</title>
+<title>Freelancer Profile/Gig Verify - PyTeam</title>
 {% endblock site_title %}
 {% block content %}
 <style>
@@ -214,20 +214,20 @@
 
 <form method="post">
   {% csrf_token %}
-  <h2>Fiverr URL Verify</h2>
+  <h2>Freelancer URL Verify</h2>
 
   <label for="urltype">URL Type</label>
   <select id="urltype" name="urltype" required>
     <option value="">-- Select Sub-category --</option>
     <option value="profile">Profile</option>
-    <option value="gig">Gig</option>
+    <option value="project">Project</option>
   </select>
 
   <label for="username">Username</label>
   <input type="text" id="username" name="username" placeholder="Enter username" required>
 
   <label for="url">URL</label>
-  <input type="url" id="url" name="url" placeholder="https://fiverr.com/username/gig-slug/" required>
+  <input type="url" id="url" name="url" placeholder="https://www.freelancer.com/u/username/" required>
 
   <button type="submit">Submit</button>
 </form>

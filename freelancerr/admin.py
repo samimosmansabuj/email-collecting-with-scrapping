@@ -1,9 +1,9 @@
 from django.contrib import admin
-from .models import FiverrCompleteGigDetails, FiverrReviewListWithEmail
+from .models import FreelancerCompleteProfileDetails, FreelancerReviewListWithEmail
 
 
-@admin.register(FiverrCompleteGigDetails)
-class CompleteGigDetailsAdmin(admin.ModelAdmin):
+@admin.register(FreelancerCompleteProfileDetails)
+class CompleteProfileDetailsAdmin(admin.ModelAdmin):
     list_display = (
         "username", "details_type", "url",
         "total_reviews", "total_scrapping", "collecting_email", "total_update",
@@ -18,9 +18,8 @@ class CompleteGigDetailsAdmin(admin.ModelAdmin):
     ordering = ("-updated_at",)
     date_hierarchy = "updated_at"
     list_per_page = 50
-    # readonly_fields = ("created_at", "updated_at")  # uncomment if you want to lock these in admin
 
-@admin.register(FiverrReviewListWithEmail)
+@admin.register(FreelancerReviewListWithEmail)
 class ReviewListWithEmailAdmin(admin.ModelAdmin):
     list_display = (
         "username", "email", "proficiency", "price_tag",

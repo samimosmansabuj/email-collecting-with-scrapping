@@ -3,7 +3,9 @@
 
 <head>
     <meta charset="utf-8">
+    {% block site_title %}
     <title>{{ title|default:"PyTeam" }}</title>
+    {% endblock site_title %}
 
     <style>
         body {
@@ -126,6 +128,7 @@
             {% if user.is_authenticated %}
             <a href="{% url 'dashboard' %}">Dashboard</a>
             <a href="{% url 'fiverr_data' %}">Fiverr</a>
+            <a href="{% url 'freelancerr_data' %}">Freelancer</a>
             {% endif %}
         </div>
         <div>

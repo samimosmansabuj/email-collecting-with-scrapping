@@ -8,6 +8,7 @@ class PremiumProfileLink(models.Model):
     )
     source = models.CharField(max_length=20, choices=SOURCE, blank=True, null=True)
     url = models.URLField(max_length=255)
+    is_scrapping = models.BooleanField(default=False)
     
     def __str__(self):
         return self.url
@@ -37,6 +38,11 @@ class SubCategory(models.Model):
     def __str__(self):
         return self.name
 
+class InvalidUsernameEmail(models.Model):
+    username = models.CharField(max_length=50)
+    status_code = models.CharField(max_length=10, blank=True, null=True)
+    def __str__(self):
+        return self.username
 
 def generate_unique_slug(model_object, field_value, old_slug=None):
     slug = slugify(field_value)
