@@ -59,41 +59,29 @@ WSGI_APPLICATION = 'email_collecting_with_scrapping.wsgi.application'
 
 
 # Database
-# import pymysql
-# pymysql.install_as_MySQLdb()
+import pymysql
+import psycopg2
+pymysql.install_as_MySQLdb()
 
 
-# ENGINE_MAP = {
-#     "sqlite": "django.db.backends.sqlite3",
-#     "postgres": "django.db.backends.postgresql",
-#     "mysql": "django.db.backends.mysql",
-# }
-# DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
-# DB_NAME = BASE_DIR / os.getenv("DATABASE_NAME", "db.sqlite3") if DB_ENGINE == "sqlite" else os.getenv("DATABASE_NAME")
-
-# DATABASES = {
-#     "default": {
-#         "ENGINE": ENGINE_MAP.get(DB_ENGINE, "django.db.backends.sqlite3"),
-#         "NAME": DB_NAME,
-#         "USER": os.getenv("DB_USER", ""),
-#         "PASSWORD": os.getenv("DB_PASSWORD", ""),
-#         "HOST": os.getenv("DB_HOST", ""),
-#         "PORT": os.getenv("DB_PORT", ""),
-#     }
-# }
+ENGINE_MAP = {
+    "sqlite": "django.db.backends.sqlite3",
+    "postgres": "django.db.backends.postgresql",
+    "mysql": "django.db.backends.mysql",
+}
+DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
+DB_NAME = BASE_DIR / os.getenv("DATABASE_NAME", "db.sqlite3") if DB_ENGINE == "sqlite" else os.getenv("DATABASE_NAME")
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql', 
-        'NAME': os.getenv('DB_NAME'),
-        'USER': os.getenv('DB_USER'),
-        'PASSWORD': os.getenv('DB_PASSWORD'),
-        'HOST': os.getenv('DB_HOST'),   # Or an IP Address that your DB is hosted on
-        'PORT': os.getenv('DB_PORT'),
+    "default": {
+        "ENGINE": ENGINE_MAP.get(DB_ENGINE, "django.db.backends.sqlite3"),
+        "NAME": DB_NAME,
+        "USER": os.getenv("DB_USER", ""),
+        "PASSWORD": os.getenv("DB_PASSWORD", ""),
+        "HOST": os.getenv("DB_HOST", ""),
+        "PORT": os.getenv("DB_PORT", ""),
     }
 }
-
-
 
 
 # Password validation
