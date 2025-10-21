@@ -1,6 +1,6 @@
 import csv
 from django.core.management.base import BaseCommand
-from fiverr.models import ReviewListWithEmail
+from fiverr.models import FiverrReviewListWithEmail
 
 class Command(BaseCommand):
     help = "Import CompleteGigDetails from CSV file"
@@ -18,7 +18,7 @@ class Command(BaseCommand):
             for i, row in enumerate(rows, start=1):
                 print(f"{i} - {row["email"]}")
                 
-                obj, created = ReviewListWithEmail.objects.get_or_create(
+                obj, created = FiverrReviewListWithEmail.objects.get_or_create(
                     username=row["username"],
                     email=row["email"],
                     country=row["country"],

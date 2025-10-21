@@ -109,16 +109,35 @@ class Command(BaseCommand):
         # Wrap in a single atomic transaction unless --non-atomic is given
         connection = connections[db_alias]
 
+        # def _save_all():
+        #     saved = 0
+        #     for obj in objects:
+        #         obj.save(using=db_alias)  # saves model and its M2M after pk exists
+        #         saved += 1
+        #         if pbar:
+        #             pbar.update(1)
+        #         elif saved % 50 == 0:
+        #             # Lightweight progress when tqdm not available
+        #             self.stdout.write(f"{saved}/{total} loaded...")
+        #     return saved
+        
         def _save_all():
             saved = 0
             for obj in objects:
-                obj.save(using=db_alias)  # saves model and its M2M after pk exists
-                saved += 1
-                if pbar:
-                    pbar.update(1)
-                elif saved % 50 == 0:
-                    # Lightweight progress when tqdm not available
-                    self.stdout.write(f"{saved}/{total} loaded...")
+                try:
+                    model_obj = obj.object
+                    # Fix overly long price_tag values before saving
+                    if hasattr(model_obj, "price_tag") and model_obj.price_tag:
+                        model_obj.price_tag = str(model_obj.price_tag)[:255]
+                    obj.save(using=db_alias)
+                    saved += 1
+                    if pbar:
+                        pbar.update(1)
+                    elif saved % 50 == 0:
+                        self.stdout.write(f"{saved}/{total} loaded...")
+                except Exception as e:
+                    self.stderr.write(self.style.WARNING(f"⚠️ Skipped object due to error: {e}"))
+                    continue
             return saved
 
         try:

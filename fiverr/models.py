@@ -33,7 +33,7 @@ class FiverrReviewListWithEmail(models.Model):
     email = models.EmailField(max_length=255)
     repeated = models.BooleanField(default=False)
     country = models.CharField(max_length=50)
-    price_tag = models.CharField(max_length=50, default="N/A")
+    price_tag = models.CharField(max_length=255, default="N/A", blank=True, null=True)
     proficiency = models.CharField(max_length=55, choices=PROFICIENCY, blank=True, null=True)
     time_text = models.CharField(max_length=55, default="N/A")
     count = models.PositiveIntegerField(default=0)
