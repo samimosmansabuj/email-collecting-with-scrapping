@@ -83,6 +83,19 @@ DATABASES = {
     }
 }
 
+import dj_database_url
+import os
+# postgresql://postgres.cszrgoftlswiwsmmshdg:email_collect_db_2025@db.cszrgoftlswiwsmmshdg.supabase.co:5432/postgres
+# postgresql://postgres.cszrgoftlswiwsmmshdg:email_collect_db_2025@aws-1-us-east-2.pooler.supabase.com:5432/postgres
+
+# DATABASES = {
+#     'default': dj_database_url.config(
+#         default='postgresql://postgres.cszrgoftlswiwsmmshdg:email_collect_db_2025@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
+#         conn_max_age=600,
+#         ssl_require=True
+#     )
+# }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
