@@ -12,6 +12,7 @@ urlpatterns = [
     path('', include('core.urls')),
     path('', include('fiverr.urls')),
     path('', include('freelancerr.urls')),
+    path('', include('send_mail.urls')),
 ]
 
 SERVE_MEDIA = os.getenv("SERVE_MEDIA", "False").strip().lower() in ("true","1","yes")

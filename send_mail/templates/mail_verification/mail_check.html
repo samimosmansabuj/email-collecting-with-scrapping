@@ -1,0 +1,252 @@
+{% extends "base.html" %}
+{% block site_title %}
+<title>Fiverr Profile/Gig Verify - PyTeam</title>
+{% endblock site_title %}
+{% block content %}
+<style>
+  form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #243447;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #1a2530;
+  }
+
+  /* Verify card */
+  .verify-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 640px;
+    margin: 20px auto;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+  }
+
+  .verify-card__header {
+    margin-bottom: 12px;
+  }
+
+  .verify-card__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .verify-card__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #243447;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+
+  .verify-card__name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .verify-card__meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .muted {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  .link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 12px;
+  }
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .verify-card__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .stat {
+    background: #f9fafb;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .stat__label {
+    color: #6b7280;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .stat__value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* Empty state */
+  .empty-state {
+    background: #fff;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    text-align: center;
+    padding: 28px;
+    max-width: 640px;
+    margin: 20px auto;
+    color: #374151;
+  }
+
+  .empty-state__icon {
+    font-size: 28px;
+  }
+
+  .empty-state__title {
+    margin: 8px 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .empty-state__text {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+  }
+</style>
+
+<form method="post" id="emailForm">
+  {% csrf_token %}
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" placeholder="Enter username" value="@gmail.com" required>
+  <button type="submit" id="submit">Submit</button>
+</form>
+
+<!-- Result box -->
+<div class="empty-state" id="result-box" style="display:none; text-align:center">
+  <div id="status-icon" style="font-size:40px;"></div>
+  <h3 class="empty-state__title" id="status-title"></h3>
+  <p class="empty-state__text" id="status-msg"></p>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function(){
+    const form = document.getElementById("emailForm");
+
+    // Result Box =========
+    const resultBox = document.getElementById("result-box");
+    const statusIcon = document.getElementById("status-icon");
+    const statusTitle = document.getElementById("status-title");
+    const statusMsg = document.getElementById("status-msg");
+
+    // Form Data==============
+    const emailInput = document.getElementById("email")
+    const submitButton = form.querySelector("button[type='submit']");
+
+    form.addEventListener("submit", async function(event) {
+        event.preventDefault();
+
+        const formData = new FormData(form);
+
+        emailInput.disabled = true;
+        submitButton.disabled = true;
+
+        resultBox.style.display = "block";
+        statusIcon.textContent = "⏳";
+        statusTitle.textContent = "Checking...";
+        statusMsg.textContent = "Please wait while we verify the email...";
+
+        try {
+            const response = await fetch("{% url 'single_mail_check' %}", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+            });
+            const data = await response.json();
+            if (data.status === true || data.status === "verified") {
+                statusIcon.textContent = "✅";
+                statusTitle.textContent = "Verified";
+                statusMsg.textContent = data.message || "The email is valid and verified.";
+                resultBox.style.color = "green";
+            } else {
+                statusIcon.textContent = "❌";
+                statusTitle.textContent = "Unverified";
+                statusMsg.textContent = data.message || "The email is invalid or not verified.";
+                resultBox.style.color = "red";
+            }
+
+        } catch (error) {
+            statusIcon.textContent = "⚠️";
+            statusTitle.textContent = "Error";
+            statusMsg.textContent = "Something went wrong while checking the email.";
+            resultBox.style.color = "orange";
+            console.error(error);
+        } finally {
+          emailInput.disabled = false;
+          submitButton.disabled = false;
+        }
+    });
+});
+</script>
+{% endblock %}
+
