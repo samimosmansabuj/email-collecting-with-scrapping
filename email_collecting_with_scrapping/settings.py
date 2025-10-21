@@ -62,43 +62,38 @@ WSGI_APPLICATION = 'email_collecting_with_scrapping.wsgi.application'
 import pymysql
 import psycopg2
 pymysql.install_as_MySQLdb()
+DATABASE_TYPE = os.getenv("DATABASE_TYPE", "0").strip().lower() in ("url","1")
 
-
-ENGINE_MAP = {
-    "sqlite": "django.db.backends.sqlite3",
-    "postgres": "django.db.backends.postgresql",
-    "mysql": "django.db.backends.mysql",
-}
-DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
-DB_NAME = BASE_DIR / os.getenv("DATABASE_NAME", "db.sqlite3") if DB_ENGINE == "sqlite" else os.getenv("DATABASE_NAME")
-
-DATABASES = {
-    "default": {
-        "ENGINE": ENGINE_MAP.get(DB_ENGINE, "django.db.backends.sqlite3"),
-        "NAME": DB_NAME,
-        "USER": os.getenv("DB_USER", ""),
-        "PASSWORD": os.getenv("DB_PASSWORD", ""),
-        "HOST": os.getenv("DB_HOST", ""),
-        "PORT": os.getenv("DB_PORT", ""),
+if DATABASE_TYPE:
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.config(
+            default=os.getenv('DATABASE_URL'),
+            conn_max_age=600,
+            ssl_require=True
+        )
     }
-}
-
-# import dj_database_url
-# # # postgresql://postgres.fkwewslbbythotzxrfsv:email_collect_db_2025@db.fkwewslbbythotzxrfsv.supabase.co:5432/postgres
-# # # postgresql://postgres.fkwewslbbythotzxrfsv:email_collect_db_2025@aws-1-us-east-2.pooler.supabase.com:5432/postgres
-
-# DATABASES = {
-#     'default': dj_database_url.config(
-#         default='postgresql://postgres.fkwewslbbythotzxrfsv:email_collect_db_2025@aws-1-us-east-2.pooler.supabase.com:5432/postgres',
-#         conn_max_age=600,
-#         ssl_require=True
-#     )
-# }
+else:
+    ENGINE_MAP = {
+        "sqlite": "django.db.backends.sqlite3",
+        "postgres": "django.db.backends.postgresql",
+        "mysql": "django.db.backends.mysql",
+    }
+    DB_ENGINE = os.getenv("DB_ENGINE", "sqlite").lower()
+    DB_NAME = BASE_DIR / os.getenv("DATABASE_NAME", "db.sqlite3") if DB_ENGINE == "sqlite" else os.getenv("DATABASE_NAME")
+    DATABASES = {
+        "default": {
+            "ENGINE": ENGINE_MAP.get(DB_ENGINE, "django.db.backends.sqlite3"),
+            "NAME": DB_NAME,
+            "USER": os.getenv("DB_USER", ""),
+            "PASSWORD": os.getenv("DB_PASSWORD", ""),
+            "HOST": os.getenv("DB_HOST", ""),
+            "PORT": os.getenv("DB_PORT", ""),
+        }
+    }
 
 
 # Password validation
-# https://docs.djangoproject.com/en/5.2/ref/settings/#auth-password-validators
-
 AUTH_PASSWORD_VALIDATORS = [
     {
         'NAME': 'django.contrib.auth.password_validation.UserAttributeSimilarityValidator',
