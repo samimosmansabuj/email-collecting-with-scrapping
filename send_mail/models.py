@@ -28,6 +28,7 @@ class EmailConfig(models.Model):
     port = models.CharField(max_length=10)
     tls = models.BooleanField(default=True)
     ssl = models.BooleanField(default=False)
+    is_default = models.BooleanField(default=False)
     
     def __str__(self):
         return f"{self.email} | {self.host}"
