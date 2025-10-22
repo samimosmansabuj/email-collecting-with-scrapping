@@ -47,8 +47,8 @@ class InvalidUsernameEmail(models.Model):
 
 
 class EmailTemplateContent(models.Model):
-    category = models.ManyToManyField(Category, related_name="email_templates", blank=True, null=True)
-    sub_category = models.ManyToManyField(SubCategory, related_name="email_templates", blank=True, null=True)
+    category = models.ManyToManyField(Category, related_name="email_templates", blank=True)
+    sub_category = models.ManyToManyField(SubCategory, related_name="email_templates", blank=True)
     body = models.TextField(blank=True, null=True)
     subject = models.CharField(max_length=500, blank=True, null=True)
     is_active = models.BooleanField(default=True)
