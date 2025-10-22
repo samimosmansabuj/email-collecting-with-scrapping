@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Category, SubCategory, PremiumProfileLink, InvalidUsernameEmail, EmailTemplateContent, EmailAttachment
+from .models import Category, SubCategory, PremiumProfileLink, InvalidUsernameEmail
 
 admin.site.register(Category)
 admin.site.register(SubCategory)
@@ -15,5 +15,4 @@ class InvalidUsernameEmailAdmin(admin.ModelAdmin):
     )
     list_per_page = 50
 
-admin.site.register(EmailTemplateContent)
-admin.site.register(EmailAttachment)
+

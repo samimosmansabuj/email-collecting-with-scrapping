@@ -1,3 +1,6 @@
 from django.contrib import admin
+from .models import EmailAttachment, EmailTemplateContent, EmailConfig
 
-# Register your models here.
+admin.site.register(EmailTemplateContent)
+admin.site.register(EmailAttachment)
+admin.site.register(EmailConfig)
