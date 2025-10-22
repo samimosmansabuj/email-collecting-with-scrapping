@@ -1,5 +1,5 @@
 from django.db import models
-from django.utils.text import slugify
+from .utils import generate_unique_slug
 
 class PremiumProfileLink(models.Model):
     SOURCE = (
@@ -9,6 +9,7 @@ class PremiumProfileLink(models.Model):
     source = models.CharField(max_length=20, choices=SOURCE, blank=True, null=True)
     url = models.URLField(max_length=255)
     is_scrapping = models.BooleanField(default=False)
+    most_important = models.BooleanField(default=False)
     
     def __str__(self):
         return self.url
@@ -44,17 +45,23 @@ class InvalidUsernameEmail(models.Model):
     def __str__(self):
         return self.username
 
-def generate_unique_slug(model_object, field_value, old_slug=None):
-    slug = slugify(field_value)
-    if slug != old_slug:
-        unique_slug = slug
-        num = 1
-        while model_object.objects.filter(slug=unique_slug).exists():
-            if unique_slug == old_slug:
-                return old_slug
-            unique_slug = f'{slug}-{num}'
-            num+=1
-        return unique_slug
-    else:
-        return old_slug
+
+class EmailTemplateContent(models.Model):
+    category = models.ManyToManyField(Category, related_name="email_templates", blank=True, null=True)
+    sub_category = models.ManyToManyField(SubCategory, related_name="email_templates", blank=True, null=True)
+    body = models.TextField(blank=True, null=True)
+    subject = models.CharField(max_length=500, blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    for_proficiency = models.CharField(max_length=255, blank=True, null=True)
+    
+    def __str__(self):
+        return f"Email Template for {self.sub_category} | {self.subject}"
+
+class EmailAttachment(models.Model):
+    template = models.ForeignKey(EmailTemplateContent, on_delete=models.SET_NULL, related_name="email_attachments", blank=True, null=True)
+    file = models.FileField("email-template-file/", blank=True, null=True)
+    
+    def __str__(self):
+        return f"Attachment File for {self.template.subject}"
+    
 

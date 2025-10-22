@@ -1,5 +1,6 @@
 from django.db import models
 from core.models import Category, SubCategory
+from core.model_select_choice import FOLLOW_UP_STAGE, LEAD_STAGE
 import re
 
 class FiverrCompleteGigDetails(models.Model):
@@ -42,6 +43,11 @@ class FiverrReviewListWithEmail(models.Model):
     review_description = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
+    most_important = models.BooleanField(default=False)
+    send_main = models.BooleanField(default=False)
+    follow_up = models.BooleanField(default=False)
+    follow_up_stage = models.CharField(max_length=50, choices=FOLLOW_UP_STAGE, blank=True, null=True)
+    lead_stage = models.CharField(max_length=50, choices=LEAD_STAGE, blank=True, null=True)
     
     def get_price_proficiency(self, price_str):
         price_str = price_str.replace(",", "").replace("US$", "").replace("$", "").strip()
