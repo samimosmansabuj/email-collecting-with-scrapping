@@ -75,7 +75,7 @@ class ScrapFiverrDataView(View):
     def get_review_data(self, review, type=None) -> dict:
         data = {}
         if type and type.lower() == "profile":
-            data["username"] = self.safe_get_text(review, "p", "l6pj4a1eb")
+            data["username"] = self.safe_get_text(review, "p", "_1nfa1as9")
             data["repeated"] = self.safe_get_text(review.find("div", class_="l6pj4a11o"), "p")
             data["country"] = self.safe_get_text(review.find("div", class_="country"), "p")
             data["time_text"] = self.safe_get_text(review, "time")

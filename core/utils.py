@@ -43,7 +43,7 @@ class EmailGenerate:
         
         if not self.is_valid_syntax(email):
             msg = f"{email} => ❌ Invalid email format"
-            return False, msg
+            return False, msg, 100
 
         domain = email.split('@')[1]
         mx_records = self.has_mx_record(domain)
