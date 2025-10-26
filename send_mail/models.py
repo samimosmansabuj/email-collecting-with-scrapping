@@ -33,3 +33,5 @@ class EmailConfig(models.Model):
     def __str__(self):
         return f"{self.email} | {self.host}"
 
+
+

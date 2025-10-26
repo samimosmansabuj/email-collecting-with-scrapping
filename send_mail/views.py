@@ -2,14 +2,90 @@ from django.shortcuts import render
 from django.http import JsonResponse
 from .utils import EmailCheck
 from .models import EmailConfig, EmailAttachment, EmailTemplateContent
+from fiverr.models import FiverrReviewListWithEmail
+from freelancerr.models import FreelancerReviewListWithEmail
+from core.models import Category, SubCategory
 from smtplib import SMTP
 from email.mime.text import MIMEText
 from django.views import View
 import requests
+from itertools import chain
+from django.core.paginator import Paginator
+from django.db.models import Q
+from django.template.loader import render_to_string
 
 class Emaillist(View):
+    def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated):
+        if q:
+            qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
+        if country: qs = qs.filter(country=country)
+        if proficiency: qs = qs.filter(proficiency=proficiency)
+        if category: qs = qs.filter(category=category)
+        if sub_category: qs = qs.filter(sub_category=sub_category)
+        if repeated in ("0", "1"): qs = qs.filter(repeated=bool(int(repeated)))
+        return qs
+    
+    def get_marged_list(self):
+        q           = (self.request.GET.get('q') or '').strip()
+        country     = self.request.GET.get('country') or ''
+        proficiency = self.request.GET.get('proficiency') or ''
+        category    = self.request.GET.get('category') or ''
+        sub_category = self.request.GET.get('sub_category') or ''
+        repeated    = self.request.GET.get('repeated')
+
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated)
+        
+        marged_list = list(chain(fiverr, freelancer))
+        marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
+        return marged_list
+    
     def get(self, request, *args, **kwargs):
-        return render(request, "send_mail/email_list.html")
+        page_number = request.GET.get('page') or 1
+        per_page    = int(request.GET.get('per_page') or 20)
+        category = Category.objects.all()
+        if request.GET.get('category') is not None:
+            sub_category = SubCategory.objects.filter(category_id=request.GET.get('category'))
+        else:
+            sub_category = SubCategory.objects.all()
+        all_list = self.get_marged_list()
+        
+        has_filters = any(request.GET.get(k) not in (None, '') for k in
+                      ['q','country','price_tag','proficiency','category','sub_category','repeated'])
+        paginator = Paginator(all_list, per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        wants_partial = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('partial') == '1'
+        if wants_partial:
+            rows_html = render_to_string("send_mail/partials/_email_rows.html", {"data_list": page_obj.object_list})
+            pagination_html = render_to_string("send_mail/partials/_pagination.html", {
+                "page_obj": page_obj,
+                "request": request,  # needed to rebuild querystring
+            })
+            return JsonResponse({
+                "rows_html": rows_html,
+                "pagination_html": pagination_html,
+                "count": paginator.count,
+                "has_filters": has_filters,
+            })
+
+        context = {
+            "data_list": page_obj.object_list,
+            "count": paginator.count,
+            "has_filters": has_filters,
+            "page_obj": page_obj,
+            "countries": FiverrReviewListWithEmail.objects.values_list("country", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.values_list("country", flat=True).distinct().order_by("country")
+            ),
+            "proficiencies": FiverrReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().order_by("proficiency")
+            ),
+            "categories": category,
+            "sub_categories": sub_category,
+            
+        }
+        
+        return render(request, "send_mail/email_list.html", context)
 
 
 def single_mail_check(request):

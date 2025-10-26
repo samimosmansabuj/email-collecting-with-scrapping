@@ -4,165 +4,155 @@
 {% endblock site_title %}
 {% block content %}
 <style>
-    .btn {
-        display: inline-block;
-        padding: 8px 14px;
-        border-radius: 6px;
-        text-decoration: none;
-        font-weight: bold;
-        transition: background 0.3s, transform 0.2s;
-    }
+  .btn {
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: bold;
+    transition: background 0.3s, transform 0.2s;
+  }
 
-    .btn-primary {
-        background: #243447;
-        color: #fff;
-    }
+  .btn-primary {
+    background: #243447;
+    color: #fff;
+  }
 
-    .btn-primary:hover {
-        background: #1a2530;
-        transform: translateY(-1px);
-    }
+  .btn-primary:hover {
+    background: #1a2530;
+    transform: translateY(-1px);
+  }
 
-    h2 {
-        margin-top: 0;
-        color: #243447;
-    }
+  h2 {
+    margin-top: 0;
+    color: #243447;
+  }
 
-    table {
-        width: 100%;
-        border-collapse: collapse;
-        margin-top: 20px;
-        border-radius: 8px;
-        overflow: hidden;
-        box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
-    }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    /* margin-top: 20px; */
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.05);
+  }
 
-    th {
-        background: #243447;
-        color: #fff;
-        padding: 12px 10px;
-        text-align: left;
-        font-size: 14px;
-    }
+  th {
+    background: #243447;
+    color: #fff;
+    padding: 12px 10px;
+    text-align: left;
+    font-size: 14px;
+  }
 
-    td {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        font-size: 14px;
-    }
+  td {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+    font-size: 14px;
+  }
+  tbody td, thead th {
+    width: 11%;
+  }
 
-    tr:nth-child(even) {
-        background: #f9f9f9;
-    }
+  /* Adjust the wrapper for the table */
+  .table-wrap {
+    position: relative;
+    max-height: 500px;  /* Set a height for scrollable area */
+    overflow-y: auto;   /* Allow vertical scrolling */
+  }
+  thead, tbody {
+    display: block;
+  }
 
-    tr:hover {
-        background: #f1f7ff;
-    }
+  thead {
+    width: 100%;
+    background-color: #243447;
+    color: white;
+  }
+  tbody {
+    height: 250px;  /* Adjust the height based on your needs */
+    overflow-y: auto;
+    display: block;
+    width: 100%;
+    background-color: white;
+  }
 
-    .no-data {
-        text-align: center;
-        padding: 20px;
-        font-style: italic;
-        color: #666;
-    }
 
-    .filter-bar {
-        position: sticky;
-        top: 0;
-        background: #fff;
-        z-index: 5;
-        padding: 12px;
-        border: 1px solid #eee;
-        border-radius: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
-    }
+  tr:nth-child(even) {
+    background: #f9f9f9;
+  }
 
-    .filter-bar label {
-        display: block;
-        margin-bottom: 4px;
+  tr:hover {
+    background: #f1f7ff;
+  }
+
+  .no-data {
+    text-align: center;
+    padding: 20px;
+    font-style: italic;
+    color: #666;
+  }
+
+  .filter-bar {
+    position: sticky;
+    top: 0;
+    background: #fff;
+    z-index: 5;
+    padding: 8px;
+    border: 1px solid #eee;
+    border-radius: 10px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, .04);
+  }
+
+  .filter-bar label {
+    display: block;
+    margin-bottom: 4px;
+  }
+
+  /* overlay loader */
+  .ajax-loading {
+    position: absolute;
+    inset: 0;
+    display: none;
+    place-items: center;
+    background: rgba(255, 255, 255, .6);
+    backdrop-filter: blur(1px);
+    z-index: 10;
+  }
+
+  .ajax-loading.show {
+    display: grid;
+  }
+
+  .spinner {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 3px solid #ddd;
+    border-top-color: #243447;
+    animation: spin .7s linear infinite;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
     }
+  }
 </style>
 
-<!-- <h2 id="total_count">Total Collection Email: {{ count }}</h2> -->
- <!-- Header / status -->
-<h2 id="total_count">
-  {% if has_filters %}
-    Showing {{ count }} filtered result{{ count|pluralize }} 
-    <small style="font-weight:normal;">(<a href=".">clear filters</a>)</small>
-  {% else %}
-    Total Collection Email: {{ count }}
-  {% endif %}
-</h2>
+<p id="result_hint" style="margin:6px 0 0;color:#666;font-size:13px;"></p>
 
 
-<!-- Include Filter Data  -->
-<form method="get" class="filter-bar"
-    style="margin:16px 0; display:grid; gap:10px; grid-template-columns: repeat(6, minmax(140px, 1fr)); align-items:end">
-    <div>
-        <label for="q" style="font-size:12px;color:#243447;">Search</label>
-        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="email / review"
-            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-    </div>
+{% include "./partials/_filtering_form.html" with data_list=data_list %}
 
-    <div>
-        <label for="country" style="font-size:12px;color:#243447;">Country</label>
-        <select id="country" name="country" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            {% for c in countries %}
-            <option value="{{ c }}" {% if request.GET.country == c %}selected{% endif %}>{{ c }}</option>
-            {% endfor %}
-        </select>
-    </div>
+<div class="table-wrap">
+  <div class="ajax-loading" id="ajaxLoading">
+    <div class="spinner"></div>
+  </div>
 
-    <div>
-        <label for="proficiency" style="font-size:12px;color:#243447;">Proficiency</label>
-        <select id="proficiency" name="proficiency"
-            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            {% for pr in proficiencies %}
-            <option value="{{ pr }}" {% if request.GET.proficiency == pr %}selected{% endif %}>{{ pr }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div>
-        <label for="category" style="font-size:12px;color:#243447;">Category</label>
-        <select id="category" name="category" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            {% for cat in categories %}
-            <option value="{{ cat }}" {% if request.GET.category == cat %}selected{% endif %}>{{ cat }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div>
-        <label for="sub_category" style="font-size:12px;color:#243447;">Sub-category</label>
-        <select id="sub_category" name="sub_category"
-            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            {% for sub in sub_categories %}
-            <option value="{{ sub }}" {% if request.GET.sub_category == sub %}selected{% endif %}>{{ sub }}</option>
-            {% endfor %}
-        </select>
-    </div>
-
-    <div>
-        <label for="repeated" style="font-size:12px;color:#243447;">Repeated</label>
-        <select id="repeated" name="repeated" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            <option value="1" {% if request.GET.repeated == '1' %}selected{% endif %}>Yes</option>
-            <option value="0" {% if request.GET.repeated == '0' %}selected{% endif %}>No</option>
-        </select>
-    </div>
-
-    <div style="grid-column: span 2 / auto; display:flex; gap:8px;">
-        <button type="submit" class="btn btn-primary">Apply Filters</button>
-        <a href="." class="btn" style="border:1px solid #ddd;">Reset</a>
-    </div>
-</form>
-
-<table>
-    <tr>
+  <table>
+    <thead>
+      <tr>
         <th>No.</th>
         <th>Email</th>
         <th>Repeated</th>
@@ -172,95 +162,142 @@
         <th>Category</th>
         <th>Sub-category</th>
         <th>Review Description</th>
-    </tr>
-    <!-- {% for data in data_list %}
-    <tr>
-        <td>{{ forloop.counter|stringformat:"02d" }}</td>
-        <td>{{ data.email }}</td>
-        <td>{{ data.repeated }}</td>
-        <td>{{ data.country }}</td>
-        <td>{{ data.price_tag }}</td>
-        <td>{{ data.proficiency }}</td>
-        <td>{{ data.category }}</td>
-        <td>{{ data.sub_category }}</td>
-        <td>{{ data.review_description|truncatechars:80 }}</td>
-    </tr>
-    {% empty %}
-    <tr>
-        <td colspan="9" class="no-data">No data available.</td>
-    </tr>
-    {% endfor %} -->
-    {% for data in data_list %}
-        <tr>
-        <td>{{ forloop.counter|stringformat:"02d" }}</td>
-        <td>{{ data.email }}</td>
-        <td>{{ data.repeated }}</td>
-        <td>{{ data.country }}</td>
-        <td>{{ data.price_tag }}</td>
-        <td>{{ data.proficiency }}</td>
-        <td>{{ data.category }}</td>
-        <td>{{ data.sub_category }}</td>
-        <td>{{ data.review_description|truncatechars:80 }}</td>
-        </tr>
-    {% empty %}
-        <tr>
-        <td colspan="9" class="no-data">
-            {% if has_filters %}No matches for the selected filters.{% else %}No data available.{% endif %}
-        </td>
-        </tr>
-    {% endfor %}
-</table>
+      </tr>
+    </thead>
+    <tbody id="tableBody">
+      {% include "./partials/_email_rows.html" with data_list=data_list %}
+    </tbody>
+  </table>
 
+  <div id="pagination">
+    {% include "./partials/_pagination.html" with page_obj=page_obj %}
+  </div>
+
+</div>
 
 <script>
-document.addEventListener("DOMContentLoaded", function(){
-    const form = document.getElementById("emailForm");
+  (function () {
+    const form = document.getElementById("filterForm");
+    const tableBody = document.getElementById("tableBody");
+    const pagination = document.getElementById("pagination");
+    const totalCount = document.getElementById("total_count");
+    const hint = document.getElementById("result_hint");
+    const overlay = document.getElementById("ajaxLoading");
 
-    // Result Box =========
-    
+    if (!form || !tableBody || !pagination) return;
 
-    // Form Data==============
-    const submitButton = form.querySelector("button[type='submit']");
+    let currentController = null;
+    let loaderTimer = null;
 
-    form.addEventListener("submit", async function(event) {
-        event.preventDefault();
-        const formData = new FormData(form);
-        
-        try {
-            const response = await fetch("{% url '' %}", {
-                method: "POST",
-                body: formData,
-                headers: {
-                    "X-Requested-With": "XMLHttpRequest"
-                },
-            });
-            const data = await response.json();
-            if (data.status === true || data.status === "verified") {
-                statusIcon.textContent = "✅";
-                statusTitle.textContent = "Verified";
-                statusMsg.textContent = data.message || "The email is valid and verified.";
-                resultBox.style.color = "green";
-            } else {
-                statusIcon.textContent = "❌";
-                statusTitle.textContent = "Unverified";
-                statusMsg.textContent = data.message || "The email is invalid or not verified.";
-                resultBox.style.color = "red";
-            }
+    function showLoaderDelayed() {
+      // only show if request lasts >150ms to avoid flicker
+      clearTimeout(loaderTimer);
+      loaderTimer = setTimeout(() => {
+        overlay && overlay.classList.add('show');
+        // disable all form controls while loading
+        Array.from(form.elements).forEach(el => el.disabled = true);
+        pagination.style.pointerEvents = 'none';
+        pagination.style.opacity = '0.6';
+      }, 150);
+    }
 
-        } catch (error) {
-            statusIcon.textContent = "⚠️";
-            statusTitle.textContent = "Error";
-            statusMsg.textContent = "Something went wrong while checking the email.";
-            resultBox.style.color = "orange";
-            console.error(error);
-        } finally {
-          emailInput.disabled = false;
-          submitButton.disabled = false;
+    function hideLoader() {
+      clearTimeout(loaderTimer);
+      overlay && overlay.classList.remove('show');
+      Array.from(form.elements).forEach(el => el.disabled = false);
+      pagination.style.pointerEvents = '';
+      pagination.style.opacity = '';
+    }
+
+    function formQS() {
+      const fd = new FormData(form);
+      const p = new URLSearchParams();
+      for (const [k, v] of fd.entries()) {
+        if (v !== null && String(v).trim() !== "") p.append(k, v);
+      }
+      return p;
+    }
+
+    async function loadData(params, push = true) {
+      // Abort any in-flight request
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
+
+      const qs = params.toString();
+      const url = qs ? (`?${qs}`) : location.pathname;
+
+      showLoaderDelayed();
+
+      try {
+        const res = await fetch(url + (qs ? '&' : '?') + 'partial=1', {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' },
+          signal: currentController.signal,
+          cache: 'no-store',
+          method: 'GET',
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        tableBody.innerHTML = data.rows_html || '';
+        pagination.innerHTML = data.pagination_html || '';
+
+        if (totalCount) {
+          totalCount.textContent = (data.has_filters
+            ? `Showing ${data.count} filtered result${data.count === 1 ? '' : 's'}`
+            : `Total Collection Email: ${data.count}`);
         }
-    });
-});
-</script>
+        if (hint) {
+          hint.textContent = data.has_filters ? 'Filters applied. Use Reset to see all data.' : '';
+        }
+        if (push) {
+          const next = qs ? (`?${qs}`) : location.pathname;
+          history.pushState({ qs }, '', next);
+        }
+      } catch (err) {
+        if (err.name === 'AbortError') {
+          // ignored: superseded by a newer request
+        } else {
+          console.error(err);
+          if (hint) hint.textContent = 'Failed to load data. Please try again.';
+        }
+      } finally {
+        hideLoader();
+        currentController = null;
+      }
+    }
 
+    // Submit -> AJAX (no full reload)
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const p = formQS();
+      p.delete('page'); // reset to page 1 when filters change
+      loadData(p, true);
+    });
+
+    // Pagination clicks -> AJAX
+    pagination.addEventListener('click', function (e) {
+      const a = e.target.closest('a[href]'); // data-page optional
+      if (!a) return;
+      // Only intercept same-origin links
+      const u = new URL(a.href, location.origin);
+      if (u.origin !== location.origin || u.pathname !== location.pathname) return;
+
+      e.preventDefault();
+      const p = formQS();
+      const page = u.searchParams.get('page') || a.getAttribute('data-page') || '1';
+      p.set('page', page);
+      loadData(p, true);
+    });
+
+    // Back/forward
+    window.addEventListener('popstate', function () {
+      const qs = (location.search || '').replace(/^\?/, '');
+      const params = new URLSearchParams(qs);
+      loadData(params, false);
+    });
+  })();
+</script>
 
 
 {% endblock %}

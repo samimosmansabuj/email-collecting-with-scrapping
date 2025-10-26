@@ -1,0 +1,31 @@
+{% if page_obj.has_other_pages %}
+<div class="pagination-wrapper" style="display: flex; justify-content: space-between; align-items: center; margin-top: 12px;">
+  <nav class="pager" aria-label="Pagination" style="display: flex; gap: 8px; align-items: center;">
+    {% if page_obj.has_previous %}
+      <a href="?page={{ page_obj.previous_page_number }}{% if request.GET %}&{{ request.GET.urlencode|cut:'page='|cut:'&page=' }}{% endif %}"
+         class="btn" data-page="{{ page_obj.previous_page_number }}" style="border:1px solid #ddd;">‹ Prev</a>
+    {% else %}
+      <span class="btn" style="border:1px solid #eee;opacity:.6;pointer-events:none;">‹ Prev</span>
+    {% endif %}
+
+    <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+
+    {% if page_obj.has_next %}
+      <a href="?page={{ page_obj.next_page_number }}{% if request.GET %}&{{ request.GET.urlencode|cut:'page='|cut:'&page=' }}{% endif %}"
+         class="btn" data-page="{{ page_obj.next_page_number }}" style="border:1px solid #ddd;">Next ›</a>
+    {% else %}
+      <span class="btn" style="border:1px solid #eee;opacity:.6;pointer-events:none;">Next ›</span>
+    {% endif %}
+  </nav>
+
+  <p id="total_count" style="margin: 0;">
+    {% if has_filters %}
+      Showing {{ count }} filtered result{{ count|pluralize }}
+      <small style="font-weight:normal;">(<a href=".">clear filters</a>)</small>
+    {% else %}
+      Total Collection Email: {{ count }}
+    {% endif %}
+  </p>
+</div>
+
+{% endif %}
