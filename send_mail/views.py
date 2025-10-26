@@ -13,6 +13,7 @@ from itertools import chain
 from django.core.paginator import Paginator
 from django.db.models import Q
 from django.template.loader import render_to_string
+from django.utils import timezone
 
 class Emaillist(View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated):
@@ -96,119 +97,81 @@ def single_mail_check(request):
         return JsonResponse({"status": status, "message": msg})
     return render(request, "mail_verification/mail_check.html")
 
-def send_mail(request):
-    template = EmailTemplateContent.objects.first()
+
+class EmailSending(View):
+    success = 0
+    failed = 0
+    cancel = 0
     
-    proxy_host = request.GET.get("proxy_host")
-    if proxy_host == "brevo":
-        # msg=MIMEText(template.body).as_string()
-        msg=MIMEText(template.body)
-        msg['Subject'] = template.subject
-        msg['From'] = "samim.quantumdev@gmail.com"
-        msg['To'] = "samim.o.sabuj01@gmail.com"
-
-        try:
-            server = SMTP("smtp-relay.brevo.com", 587)
-            server.starttls()
-            server.login("989996001@smtp-brevo.com", "YfIOqJDQBXbjMVEg")
-
-            server.sendmail(
-                from_addr="samim.quantumdev@gmail.com", to_addrs=["samim.o.sabuj01@gmail.com"], msg=msg.as_string()
-            )
-            print("Email sent successfully!")
-        except Exception as e:
-            print(f"Error sending email: {e}")
-        finally:
-            server.quit()
-    elif proxy_host == "mailersend":
-        msg=MIMEText(template.body)
-        msg['Subject'] = template.subject
-        msg['From'] = "samim.quantumdev@gmail.com"
-        msg['To'] = "nusrat.j.fatema@gmail.com"
-
-        try:
-            server = SMTP("smtp.mailersend.net", 587)
-            server.starttls()
-            server.login("MS_J69WpO@test-86org8erre1gew13.mlsender.net", "mssp.74YkC1c.pq3enl69578l2vwr.dUt8Jg1")
-
-            server.sendmail(
-                from_addr="samim.quantumdev@gmail.com", to_addrs=["nusrat.j.fatema@gmail.com"], msg=msg.as_string()
-            )
-            print("Email sent successfully!")
-        except Exception as e:
-            print(f"Error sending email: {e}")
-        finally:
-            server.quit()
-    elif proxy_host == "mailgun":
-        msg=MIMEText(template.body)
-        msg['Subject'] = template.subject
-        msg['From'] = "samim.quantumdev@gmail.com"
-        msg['To'] = "nusrat.j.fatema@gmail.com"
-
-        try:
-            server = SMTP("smtp.mailersend.net", 587)
-            server.starttls()
-            server.login("MS_J69WpO@test-86org8erre1gew13.mlsender.net", "mssp.74YkC1c.pq3enl69578l2vwr.dUt8Jg1")
-
-            server.sendmail(
-                from_addr="samim.quantumdev@gmail.com", to_addrs=["nusrat.j.fatema@gmail.com"], msg=msg.as_string()
-            )
-            print("Email sent successfully!")
-        except Exception as e:
-            print(f"Error sending email: {e}")
-        finally:
-            server.quit()
-    elif proxy_host == "turbo-smtp":
-        url = "https://api.turbo-smtp.com/api/v2/mail/send"
-        body = {
-            "authuser": "samim.quantumdev@gmail.com",
-            "authpass": "SafaPrincess@16",
-            "from": "samim.quantumdev@gmail.com",
-            "to": "nusrat.j.fatema@gmail.com",
-            "subject": "This is a test message",
-            "cc": "samim.quantumdev@gmail.com",
-            "bcc": "samim.quantumdev@gmail.com",
-            "content": "This is plain text version of the message.",
-            "html_content": "This is <b>HTML</b> version of the message."
+    def get_dynamical_block_update(self, msg_body, email_object):
+        return msg_body
+    
+    def get(self, request, *args, **kwargs):
+        # send = bool(request.GET.get("send", False))
+        send = request.GET.get("send", False)
+        to_mail_list = ["samim.o.sabuj01@gmail.com", "samim.o.sabuj02@gmail.com", "samim.o.sabuj03@gmail.com", "jewelhfahim@gmail.com"]
+        template = EmailTemplateContent.objects.first()
+        
+        
+        print("send: ", send)
+        print("send: ", send is True)
+        
+        if send is True:
+            # today_date = timezone.now().date()
+            email_server = EmailConfig.objects.filter(is_active=True, today_complete=False).first()
+            for to_mail in to_mail_list:
+            # for to_mail, __server in zip(to_mail_list, email_server):
+                msg=MIMEText(self.get_dynamical_block_update(template.body, to_mail))
+                msg['Subject'] = template.subject
+                msg['From'] = email_server.email
+                # msg['To'] = to_mail
+                try:
+                    print(f"Email Sending to {to_mail}...")
+                    server = SMTP(email_server.host, email_server.port)
+                    server.starttls()
+                    server.login(email_server.host_user, email_server.host_password)
+                    server.sendmail(
+                        from_addr=email_server.email, to_addrs=to_mail, msg=msg.as_string()
+                    )
+                    print(f"Email sent to '{to_mail}' successfully!")
+                    self.success += 1
+                    server.quit()
+                    print("Server Off for Previous!")
+                except Exception as e:
+                    print(f"Error sending email: {e}")
+                    self.failed += 1
+        
+        status_count = {
+            "success": self.success,
+            "failed": self.failed,
+            "cancel": self.cancel
         }
-        res = requests.post(url=url, json=body)
-        print("res.json(): ", res.json())
-    elif proxy_host == "mailjet":
-        msg=MIMEText(template.body)
-        msg['Subject'] = template.subject
-        msg['From'] = "samim.quantumdev@gmail.com"
-        msg['To'] = "nusrat.j.fatema@gmail.com"
+        return JsonResponse({"status": True, "health": True, "status_count": status_count})
 
-        try:
-            server = SMTP("smtp.mailersend.net", 587)
-            server.starttls()
-            server.login("MS_J69WpO@test-86org8erre1gew13.mlsender.net", "mssp.74YkC1c.pq3enl69578l2vwr.dUt8Jg1")
 
-            server.sendmail(
-                from_addr="samim.quantumdev@gmail.com", to_addrs=["nusrat.j.fatema@gmail.com"], msg=msg.as_string()
-            )
-            print("Email sent successfully!")
-        except Exception as e:
-            print(f"Error sending email: {e}")
-        finally:
-            server.quit()
+# def send_mail(request):
+#     template = EmailTemplateContent.objects.first()
+    
+    
+    
+    # proxy_host = request.GET.get("proxy_host")
+    # if proxy_host == "brevo":
+    #     try:
+    #         server = SMTP("smtp-relay.brevo.com", 587)
+    #         server.starttls()
+    #         server.login("989996001@smtp-brevo.com", "YfIOqJDQBXbjMVEg")
 
-        # try:
-        #     server = SMTP("pro.turbo-smtp.com", 465)
-        #     server.starttls()
-        #     server.login("samim.quantumdev@gmail.com", "TP1UthNY")
-
-        #     server.sendmail(
-        #         from_addr="samim.quantumdev@gmail.com", to_addrs=["nusrat.j.fatema@gmail.com"], msg=msg.as_string()
-        #     )
-        #     print("Email sent successfully!")
-        # except Exception as e:
-        #     print(f"Error sending email: {e}")
-        # finally:
-        #     server.quit()
-    else:
-        print("No Use Any Server for Sending Email")
-    return JsonResponse({"status": True, "health": True})
+    #         server.sendmail(
+    #             from_addr="samim.quantumdev@gmail.com", to_addrs=["samim.o.sabuj01@gmail.com"], msg=msg.as_string()
+    #         )
+    #         print("Email sent successfully!")
+    #     except Exception as e:
+    #         print(f"Error sending email: {e}")
+    #     finally:
+    #         server.quit()
+    # else:
+    #     print("No Use Any Server for Sending Email")
+    # return JsonResponse({"status": True, "health": True})
 
 # def send_mail(request):
 #     config_email = EmailConfig.objects.all().first()
