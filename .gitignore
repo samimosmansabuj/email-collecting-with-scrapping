@@ -40,6 +40,7 @@ tmp/
 restart.txt
 
 Documents.txt
+*txt
 
 all_del/
 main.json
