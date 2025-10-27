@@ -17,6 +17,7 @@ from itertools import cycle
 from collections import deque
 import random
 import re
+from .models import EmailConfig
 
 class Emaillist(View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
@@ -181,4 +182,18 @@ class EmailSending(View):
         }
         return JsonResponse({"status": True, "health": True, "status_count": status_count})
 
+
+class EmailSendWithServer(View):
+    def get(self, request, *args, **kwargs):
+        mail_server = EmailConfig.objects.filter(is_active=True)
+        return render(request, "send_mail/mail_send_manual.html", {"mail_server": mail_server})
+    
+    def post(self, request, *args, **kwargs):
+        mail_server = request.POST.get('mail_server')
+        mail_body = request.POST.get('mail_body')
+        emailInput = request.POST.get('emailInput')
+        print("mail_server: ", mail_server)
+        print("mail_body: ", mail_body)
+        print("emailInput: ", emailInput)
+        return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
 

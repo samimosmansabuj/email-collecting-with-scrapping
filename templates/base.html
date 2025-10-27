@@ -15,6 +15,49 @@
             color: #333;
         }
 
+        /* ===== Dropdown Styles ===== */
+        .dropdown {
+            position: relative;
+            display: inline-block;
+        }
+
+        .dropbtn {
+            cursor: pointer;
+            color: #fff;
+            text-decoration: none;
+            margin-right: 16px;
+            font-weight: 500;
+            transition: opacity 0.3s;
+        }
+
+        .dropdown-content {
+            display: none;
+            position: absolute;
+            background-color: #243447;
+            min-width: 160px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            border-radius: 4px;
+            z-index: 1001; /* higher than topbar */
+            /* margin-top: 5px; */
+        }
+
+        .dropdown-content a {
+            color: #fff;
+            padding: 10px 14px;
+            text-decoration: none;
+            display: block;
+            font-weight: 500;
+        }
+
+        .dropdown-content a:hover {
+            background-color: #1b2b36;
+        }
+
+        .dropdown:hover .dropdown-content {
+            display: block;
+        }
+
+
         /* ====== TOPBAR ====== */
         .topbar {
             background: #243447;
@@ -129,10 +172,17 @@
             <a href="{% url 'dashboard' %}">Dashboard</a>
             <a href="{% url 'fiverr_data' %}">Fiverr</a>
             <a href="{% url 'freelancerr_data' %}">Freelancer</a>
-            <a href="{% url 'email_list' %}">All List</a>
             {% endif %}
             <a href="{% url 'single_mail_check' %}">Check Email</a>
-            <a href="{% url 'send_mail' %}">Send Email</a>
+            <!-- Dropdown Menu -->
+            <div class="dropdown">
+                <a class="dropbtn">Email ▼</a>
+                <div class="dropdown-content">
+                    <a href="{% url 'email_list' %}" style="font-size: 17px; font-weight: normal;">All List</a>
+                    <a href="{% url 'send_mail_manual' %}">Manual Send</a>
+                    <a href="{% url 'send_mail' %}">Send Email</a>
+                </div>
+            </div>
         </div>
         <div>
             {% if user.is_authenticated %}

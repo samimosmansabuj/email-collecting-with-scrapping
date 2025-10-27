@@ -1,0 +1,362 @@
+{% extends "base.html" %}
+{% block site_title %}
+<title>Fiverr Profile/Gig Verify - PyTeam</title>
+{% endblock site_title %}
+
+{% block content %}
+<style>
+  form {
+    background: #fff;
+    padding: 20px;
+    border-radius: 8px;
+    max-width: 600px;
+    margin: auto;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  }
+
+  label {
+    display: block;
+    margin-top: 12px;
+    font-weight: bold;
+  }
+
+  select,
+  input,
+  textarea {
+    width: 100%;
+    padding: 8px;
+    margin-top: 4px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+  }
+
+  button {
+    margin-top: 16px;
+    padding: 10px 16px;
+    background: #243447;
+    color: #fff;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+
+  button:hover {
+    background: #1a2530;
+  }
+
+  /* Verify card */
+  .verify-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    max-width: 640px;
+    margin: 20px auto;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, .06);
+  }
+
+  .verify-card__header {
+    margin-bottom: 12px;
+  }
+
+  .verify-card__title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .verify-card__avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #243447;
+    color: #fff;
+    font-weight: 700;
+    letter-spacing: .3px;
+  }
+
+  .verify-card__name {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  .verify-card__meta {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+
+  .pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 999px;
+    background: #eef2ff;
+    color: #4338ca;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: capitalize;
+  }
+
+  .muted {
+    color: #6b7280;
+    font-size: 12px;
+  }
+
+  .link {
+    color: #2563eb;
+    text-decoration: none;
+    font-size: 12px;
+  }
+
+  .link:hover {
+    text-decoration: underline;
+  }
+
+  .verify-card__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .stat {
+    background: #f9fafb;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    padding: 12px;
+  }
+
+  .stat__label {
+    color: #6b7280;
+    font-size: 12px;
+    margin-bottom: 4px;
+  }
+
+  .stat__value {
+    font-size: 18px;
+    font-weight: 700;
+    color: #111827;
+  }
+
+  /* Empty state */
+  .empty-state {
+    background: #fff;
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    text-align: center;
+    padding: 28px;
+    max-width: 640px;
+    margin: 20px auto;
+    color: #374151;
+  }
+
+  .empty-state__icon {
+    font-size: 28px;
+  }
+
+  .empty-state__title {
+    margin: 8px 0 4px;
+    font-size: 18px;
+    font-weight: 700;
+  }
+
+  .empty-state__text {
+    margin: 0;
+    font-size: 14px;
+    color: #6b7280;
+  }
+</style>
+
+<div class="verify-card" id="hostDetaisCard" style="display: none;"></div>
+<div class="empty-state" id="emptyState" style="display: none;"></div>
+
+
+<form method="post" id="MailSendingForm">
+  {% csrf_token %}
+  <h2>Send Mail with Different Server</h2>
+
+  <label for="mail_server">Mail Server</label>
+  <select id="mail_server" name="mail_server" required>
+    <option value="">-- Select Mail Server --</option>
+    {% for mail_server in mail_server %}
+    <option value="{{ mail_server.server }}">{{ mail_server.host }}</option>
+    {% endfor %}
+  </select>
+
+  <label for="email">Email</label>
+  <input type="email" id="email" name="email" placeholder="Enter send email" required>
+
+  <label for="mail_body">Email Body</label>
+  <textarea name="mail_body" id="mail_body" required style="height: 100px;"></textarea>
+
+  <button type="submit">Submit</button>
+</form>
+
+
+<!-- Result box -->
+<div class="empty-state" id="result-box" style="display:none; text-align:center">
+  <div id="status-icon" style="font-size:40px;"></div>
+  <h3 class="empty-state__title" id="status-title"></h3>
+  <p class="empty-state__text" id="status-msg"></p>
+</div>
+
+<script>
+  const mailServer = document.getElementById('mail_server');
+  const hostDetaisCard = document.getElementById("hostDetaisCard");
+  const emptyState = document.getElementById("emptyState");
+
+  function resetSubcats(title="No data", details="Submit the form to see verification details here.") {
+    emptyState.innerHTML = `
+    <div class="empty-state__icon">🗂️</div>
+    <h3 class="empty-state__title">${title}</h3>
+    <p class="empty-state__text">${details}</p>
+    `;
+    emptyState.style.display = "block"
+    hostDetaisCard.style.display = "none"
+  }
+
+  mailServer.addEventListener("change", async (e) => {
+    const server = e.target.value;
+    if (!server) { resetSubcats(); return; }
+    resetSubcats(title="Loading...", details="Searching Host Server from Database!");
+    try {
+      const res = await fetch(`/api/get-mail-server/${encodeURIComponent(server)}/`, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+      });
+      
+      if (!res.ok) {  // handles 404, 403, etc
+          const errText = await res.text();  // can log full HTML for debugging
+          throw new Error(`Server returned ${res.status}: ${res.statusText}`);
+      }
+
+      const data = await res.json();
+      const results = data.results;
+      if (!data.ok) { resetSubcats('Not Found', "No Host Server found from the Database!"); return; }
+      host_server = data.results;
+
+      emptyState.style.display = "none"
+      hostDetaisCard.style.display = "block"
+
+      hostDetaisCard.innerHTML = `
+      <div class="verify-card__header">
+        <div class="verify-card__title">
+          <span class="verify-card__avatar">{{ data.username|first|upper }}</span>
+          <div>
+            <div class="verify-card__meta">
+              <span class="pill">Host</span>
+              <a rel="noopener" class="link">
+                ${results.host}
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="verify-card__grid">
+        <div class="stat">
+          <div class="stat__label">Host User</div>
+          <div class="stat__value">${results.host_user}</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">Host Password</div>
+          <div class="stat__value">${results.host_password}</div>
+        </div>
+      </div>
+      <div class="verify-card__grid">
+        <div class="stat">
+          <div class="stat__label">Port</div>
+          <div class="stat__value">${results.port}</div>
+        </div>
+        <div class="stat">
+          <div class="stat__label">TLS</div>
+          <div class="stat__value">${results.tls}</div>
+        </div>
+      </div>
+      `
+    } catch (err) {
+      resetSubcats('Failed to Found', err);
+    }
+
+  })
+</script>
+
+
+<script>
+  document.addEventListener("DOMContentLoaded", function () {
+    const form = document.getElementById("MailSendingForm");
+
+    // Result Box =========
+    const resultBox = document.getElementById("result-box");
+    const statusIcon = document.getElementById("status-icon");
+    const statusTitle = document.getElementById("status-title");
+    const statusMsg = document.getElementById("status-msg");
+    
+    // Form Data==============
+    const mail_server = document.getElementById("mail_server");
+    const mail_body = document.getElementById("mail_body");
+    const emailInput = document.getElementById("email")
+    const submitButton = form.querySelector("button[type='submit']");
+
+    form.addEventListener("submit", async function (event) {
+      event.preventDefault();
+
+      const formData = new FormData(form);
+
+      emailInput.disabled = true;
+      mail_server.disabled = true;
+      mail_body.disabled = true;
+      submitButton.disabled = true;
+
+      resultBox.style.display = "block";
+      statusIcon.textContent = "⏳";
+      statusTitle.textContent = "Sending...";
+      statusMsg.textContent = "Please wait while sending the email...";
+
+      try {
+        const response = await fetch("{% url 'send_mail_manual' %}", {
+          method: "POST",
+          body: formData,
+          headers: {
+            "X-Requested-With": "XMLHttpRequest"
+          },
+        });
+        const data = await response.json();
+        
+        // if (data.ok === true || data.status === "verified") {
+        if (!data.ok) {
+          statusIcon.textContent = "❌";
+          statusTitle.textContent = "Undelivered";
+          statusMsg.textContent = data.message || "The email is invalid or not verified.";
+          resultBox.style.color = "red";
+        } else {
+          statusIcon.textContent = "✅";
+          statusTitle.textContent = "Delivered";
+          statusMsg.textContent = data.message || "The email is valid and verified.";
+          resultBox.style.color = "green";
+        }
+
+      } catch (error) {
+        statusIcon.textContent = "⚠️";
+        statusTitle.textContent = "Error";
+        statusMsg.textContent = "Something went wrong while checking the email.";
+        resultBox.style.color = "orange";
+        console.error(error);
+      } finally {
+        // emailInput.disabled = false;
+        // submitButton.disabled = false;
+        emailInput.disabled = true;
+        mail_server.disabled = true;
+        mail_body.disabled = true;
+        submitButton.disabled = true;
+      }
+    });
+  });
+</script>
+{% endblock %}

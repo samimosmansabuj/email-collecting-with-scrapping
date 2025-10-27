@@ -7,6 +7,7 @@ from fiverr.models import FiverrReviewListWithEmail, FiverrCompleteGigDetails
 from freelancerr.models import FreelancerReviewListWithEmail
 from django.views.decorators.http import require_POST, require_GET
 from .models import Category, SubCategory
+from send_mail.models import EmailConfig
 import json
 
 BUSINESS_NAME = "PyTeam"
@@ -36,6 +37,36 @@ def get_subcategories(request, category_slug):
     subs = SubCategory.objects.filter(category=category).values("id", "name", "slug")
     data = list(subs)
     return JsonResponse({"ok": True, "results": data, "count": len(data)}, status=200)
+
+@login_required
+@require_GET
+def get_mail_server(request, server):
+    try:
+        mail_server = EmailConfig.objects.get(server=server)
+    except EmailConfig.DoesNotExist:
+        return JsonResponse({"ok": False, "error": "Host not found"}, status=404)
+
+    data = {
+        "host": mail_server.host,
+        "host_user": mail_server.host_user,
+        "host_password": mail_server.host_password,
+        "port": mail_server.port,
+        "tls": mail_server.tls,
+    }
+
+    return JsonResponse({"ok": True, "results": data})
+
+# from django.core import serializers
+# from django.http import JsonResponse
+
+# @login_required
+# @require_GET
+# def get_mail_server(request, host):
+#     mail_server = get_object_or_404(EmailConfig, host=host)
+#     data = serializers.serialize('json', [mail_server])
+#     return JsonResponse({"ok": True, "results": data}, status=200)
+
+
 
 
 # @login_required

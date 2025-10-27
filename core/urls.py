@@ -12,5 +12,6 @@ urlpatterns = [
 
     
     path("api/subcategories/<slug:category_slug>/", get_subcategories, name="api-subcategories"),
+    path("api/get-mail-server/<slug:server>/", get_mail_server, name="api-get_mail_server"),
     path("api/fiverr-url-verify/", verified_fiverr_url, name="api-fiverrurlverify"),
 ]
