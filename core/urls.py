@@ -9,4 +9,8 @@ urlpatterns = [
     # path('logout/', auth_views.LogoutView.as_view(), name='logout'),
     
     path('dashboard/', dashboard, name='dashboard'),
+
+    
+    path("api/subcategories/<slug:category_slug>/", get_subcategories, name="api-subcategories"),
+    path("api/fiverr-url-verify/", verified_fiverr_url, name="api-fiverrurlverify"),
 ]

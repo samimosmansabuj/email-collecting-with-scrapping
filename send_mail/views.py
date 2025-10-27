@@ -181,3 +181,4 @@ class EmailSending(View):
         }
         return JsonResponse({"status": True, "health": True, "status_count": status_count})
 
+

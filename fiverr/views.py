@@ -20,14 +20,6 @@ def fiverr_data(request):
         "data_list": data_list[:20], "count": len(data_list)
     })
 
-login_required
-@require_GET
-def get_subcategories(request, category_slug):
-    category = get_object_or_404(Category, slug=category_slug)
-    subs = SubCategory.objects.filter(category=category).values("id", "name", "slug")
-    data = list(subs)
-    return JsonResponse({"ok": True, "results": data, "count": len(data)}, status=200)
-
 
 @method_decorator(login_required, name='dispatch')
 class ScrapFiverrDataView(View):
@@ -229,3 +221,4 @@ def verify_fiverr_url(request):
         return render(request, "fiverr/verify_fiverr.html", context)
     else:
         return render(request, "fiverr/verify_fiverr.html", context)
+
