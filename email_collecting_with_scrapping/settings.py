@@ -64,7 +64,7 @@ CORS_ALLOW_ALL_ORIGINS = True
 
 # Database
 import pymysql
-import psycopg2
+# import psycopg2
 pymysql.install_as_MySQLdb()
 DATABASE_TYPE = os.getenv("DATABASE_TYPE", "0").strip().lower() in ("url","1")
 
