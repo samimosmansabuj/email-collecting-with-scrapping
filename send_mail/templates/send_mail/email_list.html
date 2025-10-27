@@ -180,7 +180,7 @@
     const form = document.getElementById("filterForm");
     const tableBody = document.getElementById("tableBody");
     const pagination = document.getElementById("pagination");
-    const totalCount = document.getElementById("total_count");
+    
     const hint = document.getElementById("result_hint");
     const overlay = document.getElementById("ajaxLoading");
 
@@ -238,10 +238,10 @@
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
-
         tableBody.innerHTML = data.rows_html || '';
         pagination.innerHTML = data.pagination_html || '';
 
+        const totalCount = document.getElementById("total_count");
         if (totalCount) {
           totalCount.textContent = (data.has_filters
             ? `Showing ${data.count} filtered result${data.count === 1 ? '' : 's'}`

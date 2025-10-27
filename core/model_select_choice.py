@@ -16,3 +16,8 @@ class LEAD_STAGE(models.TextChoices):
     QUALIFIED = "qualified"
     NOT_QUALIFIED = "not_qualified"
     CONVERTED = "converted"
+
+class EmailTemplatetype(models.TextChoices):
+    HEADER_HOOK = "header_hook"
+    MASTER = "master"
+    FOOTER_HOOK = "footer_hook"

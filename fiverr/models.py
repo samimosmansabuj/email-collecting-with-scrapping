@@ -44,7 +44,7 @@ class FiverrReviewListWithEmail(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     most_important = models.BooleanField(default=False)
-    send_main = models.BooleanField(default=False)
+    send_mail = models.BooleanField(default=False)
     follow_up = models.BooleanField(default=False)
     follow_up_stage = models.CharField(max_length=50, choices=FOLLOW_UP_STAGE, blank=True, null=True)
     lead_stage = models.CharField(max_length=50, choices=LEAD_STAGE, blank=True, null=True)
