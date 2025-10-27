@@ -50,7 +50,6 @@ def verified_fiverr_url(request):
             url = data.get("url")
         except Exception:
             return JsonResponse({"ok": False, "message": "Invalid JSON"}, status=400)
-        print("data: ", data)
         if FiverrCompleteGigDetails.objects.filter(username=username, url=url, details_type=urltype).exists():
             data = FiverrCompleteGigDetails.objects.get(username=username, url=url, details_type=urltype)
             return JsonResponse(
