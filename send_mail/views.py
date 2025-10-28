@@ -116,20 +116,19 @@ class EmailSending(View):
         
         msg_body = f"""Hi {email_object.username},\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}
         """
-          
-        # print("msg_body:")
-        # print(msg_body)
         
         msg=MIMEText(msg_body)
         msg['Subject'] = header_hook.subject
         msg['From'] = email_server.email
-        # msg['To'] = email_object.email
+        msg['To'] = email_object.email
         return msg
     
     def get(self, request, *args, **kwargs):
         send = request.GET.get("send", 0)
-        mailer_list = FiverrReviewListWithEmail.objects.all().order_by("-created_at")[:6]
-        
+        dummy_list = ["shawon.quantumedge@gmail.com", "	imtiaz.quantumdev@gmai.com", "jewelhfahim@gmail.com", "samim.o.sabuj03@gmail.com", "samim.o.sabuj02@gmail.com", "samim.o.sabuj01@gmail.com"]
+        # mailer_list = FiverrReviewListWithEmail.objects.all().order_by("-created_at")[:6]
+        mailer_list = FiverrReviewListWithEmail.objects.filter(email__in=dummy_list)[:6]
+
         if int(send) == 1:
             email_servers = deque(list(EmailConfig.objects.filter(is_active=True, today_complete=False)))
             random.shuffle(email_servers)
@@ -137,33 +136,17 @@ class EmailSending(View):
                 raise ValueError("No active Email Server to use")
                   
             for email_object in mailer_list:
-                print("*******************************************************")
+                print("*****************************************************************************************************")
                 attempts = 0
                 last_exc = None
                 while attempts < len(email_servers):
                     email_server = email_servers[0]
-                    msg = self.get_dynamical_block_update(email_object, email_server)
-                    
                     try:
-                        # print("email_object: ", email_object)
-                        # print("email_server: ", email_server)
                         print(f"Connect to Mail Server  >>> {email_server}")
                         server = SMTP(email_server.host, email_server.port)
                         server.starttls()
                         server.login(email_server.host_user, email_server.host_password)
-                        
-                        print(f"Email Sending to {email_object.email}...")
-                        server.sendmail(
-                            from_addr=email_server.email, to_addrs=email_object.email, msg=msg.as_string()
-                        )
-                        print(f"Email sent to '{email_object.email}' successfully!")
-                        
-                        self.success += 1
-                        email_object.send_mail = True
-                        email_object.save()
-                        server.quit()
-                        print("Server Off for Previous!")
-                        email_servers.rotate(-1)
+                        print(f"Server Connected  >>> {email_server}")
                         break
                     except Exception as e:
                         last_exc = e
@@ -173,8 +156,30 @@ class EmailSending(View):
                 else:
                     print(f"All servers failed for {email_object}. Last error: {last_exc}")
                     self.failed += 1
-                print("*******************************************************")
+                
+                try:
+                    print("Template Generate Processing......")
+                    msg = self.get_dynamical_block_update(email_object, email_server)
+                    print("Template Generate Complete!")
                     
+                    print(f"Email Sending to {email_object.email}...")
+                    server.sendmail(
+                        from_addr=email_server.email, to_addrs=email_object.email, msg=msg.as_string()
+                    )
+                    print(f"Email sent to '{email_object.email}' successfully!")
+                    
+                    self.success += 1
+                    email_object.send_mail = True
+                    email_object.save()
+                    server.quit()
+                    print("Server Disconnected!")
+                    email_servers.rotate(-1)
+                except Exception as e:
+                    print(f"Failed to Sending Email: {str(e)}")
+                    # email_servers.rotate(-1)
+                    self.failed += 1
+                print("*****************************************************************************************************")
+                            
         status_count = {
             "success": self.success,
             "failed": self.failed,
@@ -188,12 +193,58 @@ class EmailSendWithServer(View):
         mail_server = EmailConfig.objects.filter(is_active=True)
         return render(request, "send_mail/mail_send_manual.html", {"mail_server": mail_server})
     
+    def get_dynamical_block_update(self, email_object, email_server):
+        mt = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.MASTER).first()
+        fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK).first()
+        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK)
+        
+        master_template = self.replace_service_name(mt.body, email_object.sub_category.name)
+        footer_hook = self.replace_service_name(fh.body, email_object.sub_category.name)
+        header_hook = random.choice(list(hh)) if hh.exists() else None
+        
+        msg_body = f"""Hi {email_object.username},\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}
+        """
+          
+        # print("msg_body:")
+        # print(msg_body)
+        
+        msg=MIMEText(msg_body)
+        msg['Subject'] = header_hook.subject
+        msg['From'] = email_server.email
+        # msg['To'] = email_object.email
+        return msg
+    
     def post(self, request, *args, **kwargs):
-        mail_server = request.POST.get('mail_server')
+        server = request.POST.get('mail_server')
         mail_body = request.POST.get('mail_body')
-        emailInput = request.POST.get('emailInput')
-        print("mail_server: ", mail_server)
-        print("mail_body: ", mail_body)
-        print("emailInput: ", emailInput)
+        emailInput = request.POST.get('email')
+        print("*******************************************************")
+        try:
+            mail_server = EmailConfig.objects.get(server=server)
+        except EmailConfig.DoesNotExist:
+            print("*******************************************************")
+            return JsonResponse({"ok": False, "message": "Host not found"}, status=404)
+        
+        try:
+            # msg = self.get_dynamical_block_update(email_object, email_server)
+            msg=MIMEText(mail_body)
+            msg['Subject'] = "Testing"
+            msg['From'] = mail_server.email
+            msg['To'] = emailInput
+            print(f"Connect to Mail Server  >>> {mail_server}")
+            server = SMTP(host=mail_server.host, port=mail_server.port)
+            server.starttls()
+            server.login(mail_server.host_user, mail_server.host_password)
+            print("Mail Server Connected!")
+            print(f"Mail Sending to {emailInput}...")
+            server.sendmail(
+                from_addr=mail_server.email, to_addrs=emailInput, msg=msg.as_string()
+            )
+            print(f"Email sent to '{emailInput}' successfully!")
+            print("*******************************************************")
+        except Exception as e:
+            print("*******************************************************")
+            return JsonResponse({"ok": False, "message": str(e)}, status=404)
+        
         return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
 

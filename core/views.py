@@ -56,19 +56,6 @@ def get_mail_server(request, server):
 
     return JsonResponse({"ok": True, "results": data})
 
-# from django.core import serializers
-# from django.http import JsonResponse
-
-# @login_required
-# @require_GET
-# def get_mail_server(request, host):
-#     mail_server = get_object_or_404(EmailConfig, host=host)
-#     data = serializers.serialize('json', [mail_server])
-#     return JsonResponse({"ok": True, "results": data}, status=200)
-
-
-
-
 # @login_required
 @require_POST
 @csrf_exempt
