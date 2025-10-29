@@ -14,7 +14,7 @@ class EmailTemplateContent(models.Model):
     positive_rating = models.PositiveIntegerField(default=0, blank=True, null=True)
     
     def __str__(self):
-        return f"{self.type}: Email Template for {self.sub_category} | {self.subject}"
+        return f"{self.is_active} | {self.type}: Email Template for {self.sub_category} | {self.subject}"
 
 class EmailAttachment(models.Model):
     template = models.ForeignKey(EmailTemplateContent, on_delete=models.SET_NULL, related_name="email_attachments", blank=True, null=True)

@@ -21,3 +21,4 @@ class EmailTemplatetype(models.TextChoices):
     HEADER_HOOK = "header_hook"
     MASTER = "master"
     FOOTER_HOOK = "footer_hook"
+    SIGNATURE_HOOK = "signature_hook"

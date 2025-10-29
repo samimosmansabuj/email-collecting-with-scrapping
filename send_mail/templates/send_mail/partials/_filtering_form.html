@@ -64,7 +64,7 @@
     <div style="grid-column: span 4 / auto; display:flex; gap:8px;">
         <button type="submit" class="btn btn-primary">Apply Filters</button>
         <a href="." class="btn" style="border:1px solid #ddd;">Reset</a>
-        <button type="button" class="btn btn-primary">Mail Send</button>
+        <button type="button" class="btn btn-primary" name="send_mail_multiple" id="sendMailMultipleBtn" data-post-url="{% url 'collection_email_send_multiple' %}">Mail Send</button>
     </div>
 </form>
 
@@ -104,3 +104,93 @@
       }
     });
 </script>
+
+<script>
+  (function () {
+    const form   = document.getElementById("filterForm");
+    const btn    = document.getElementById("sendMailMultipleBtn");
+    const overlay = document.getElementById("ajaxLoading");
+    const hint   = document.getElementById("result_hint");
+
+    if (!form || !btn) return;
+
+    let currentController = null;
+    let loaderTimer = null;
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function showLoaderDelayed() {
+      clearTimeout(loaderTimer);
+      loaderTimer = setTimeout(() => {
+        overlay && overlay.classList.add('show');
+        Array.from(form.elements).forEach(el => el.disabled = true);
+        btn.disabled = true;
+      }, 150);
+    }
+    function hideLoader() {
+      clearTimeout(loaderTimer);
+      overlay && overlay.classList.remove('show');
+      Array.from(form.elements).forEach(el => el.disabled = false);
+      btn.disabled = false;
+    }
+
+    async function postForm(url) {
+      if (!url) return;
+    
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
+
+      const fd = new FormData(form);
+      fd.delete('page');
+      
+      showLoaderDelayed();
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          body: fd,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+          },
+          signal: currentController.signal,
+          cache: 'no-store'
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // ইউজারকে ফিডব্যাক
+        if (hint) {
+          const msg = data.message || `Done. Processed: ${data.processed ?? 0}`;
+          hint.textContent = msg;
+        }
+
+        // অ্যাকশনের পরে লিস্টটা রিফ্রেশ করতে চাইলে:
+        // ১) AJAX ফিল্টার স্ক্রিপ্টকে রিইউজ করে ফর্ম সাবমিট ইভেন্ট ট্রিগার
+        // const ev = new Event('submit', { bubbles: true, cancelable: true });
+        // form.dispatchEvent(ev);
+
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          if (hint) hint.textContent = 'Mail send failed. Please try again.';
+        }
+      } finally {
+        hideLoader();
+        currentController = null;
+      }
+    }
+
+    btn.addEventListener('click', function () {
+      const url = btn.getAttribute('data-post-url');
+      postForm(url);
+    });
+  })();
+</script>
+

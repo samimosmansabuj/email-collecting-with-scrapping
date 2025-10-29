@@ -186,7 +186,7 @@
   <select id="mail_server" name="mail_server" required>
     <option value="">-- Select Mail Server --</option>
     {% for mail_server in mail_server %}
-    <option value="{{ mail_server.server }}">{{ mail_server.host }}</option>
+    <option value="{{ mail_server.server }}">{{ mail_server.server }} | {{ mail_server.host }}</option>
     {% endfor %}
   </select>
 
