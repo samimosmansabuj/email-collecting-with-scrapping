@@ -330,8 +330,7 @@ class EmailSendWithServer(View):
         footer_hook = self.replace_service_name(fh.body, "Web Development")
         signature_hook = self.replace_service_name(sh.body, "Web Development")
         
-        msg_body = f"""Hi Sir,\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}\n\n{signature_hook}
-        <a href="https://ibb.co.com/kVdtDj1V"><img src="https://i.ibb.co.com/twd92gXw/samim-osman-blue-shirt.jpg" alt="samim-osman-blue-shirt" border="0"></a>
+        msg_body = f"""Hi Sir,\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}\n\n{signature_hook}\n<img src="https://dc763mcq-7275.asse.devtunnels.ms/api/mail-image/?email=samim.o.sabuj01@gmail.com" width="1" height="1" alt="" style="border:0; outline:0; text-decoration:none;">
         """
         return msg_body, header_hook.subject
     

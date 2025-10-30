@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse, HttpResponseBadRequest
+from django.http import JsonResponse, HttpResponseBadRequest, HttpResponse
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -12,6 +12,7 @@ from .utils import AllListMarge, _ts_to_dt
 from django.utils import timezone
 from django.conf import settings
 import json
+import base64
 
 BUSINESS_NAME = "PyTeam"
 BUSINESS_DESC = ("AI Based Automation Software Company. Mainly using Python but we provide all kinds "
@@ -146,14 +147,33 @@ def brevo_email_status_webhook(request):
     })
 
 
+
+PIXEL_PNG_B64 = (
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgYAAAAAMA"
+    "ASsJTYQAAAAASUVORK5CYII="
+)
+PIXEL_BYTES = base64.b64decode(PIXEL_PNG_B64)
 # @require_GET
 def gmail_tracking_api(request):
+    # email = request.GET.get("email", "")
+    # status = request.GET.get("status" or None)
+    # email_object = AllListMarge.search_by_email(email=email)
+    # email_object.last_event = "opened"
+    # print("email: ", email)
+    
     email = request.GET.get("email", "")
-    print("email: ", email)
-    return JsonResponse({"ok": True, "health": True})
-    # try:
-    #     email = request.get("email", "")
-    #     print("email: ", email)
-    #     return JsonResponse({"ok": True, "health": True})
-    # except:
-    #     return JsonResponse({"ok": False, "health": False})
+    msg_id = request.GET.get("msg_id", "")
+    ua = request.META.get("HTTP_USER_AGENT", "")
+    ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+
+    # TODO: এখানে আপনার DB তে ওপেন লগ/আপডেট রাখুন
+    # Example:
+    # EmailOpenLog.objects.create(email=email, msg_id=msg_id, ua=ua, ip=ip, opened_at=now())
+
+    resp = HttpResponse(PIXEL_BYTES, content_type="image/png", status=200)
+    resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    resp["Pragma"] = "no-cache"
+    resp["Expires"] = "0"
+    return resp
+    
+    # return JsonResponse({"ok": True, "health": True})
