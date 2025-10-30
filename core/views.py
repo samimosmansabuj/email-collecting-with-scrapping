@@ -162,9 +162,11 @@ def gmail_tracking_api(request):
     # print("email: ", email)
     
     email = request.GET.get("email", "")
-    msg_id = request.GET.get("msg_id", "")
     ua = request.META.get("HTTP_USER_AGENT", "")
     ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+    email_object = AllListMarge.search_by_email(email=email)
+    email_object.last_event = "opened"
+    email_object.save()
 
     # TODO: এখানে আপনার DB তে ওপেন লগ/আপডেট রাখুন
     # Example:
