@@ -1,6 +1,7 @@
 from django.db import models
 from core.models import Category, SubCategory
 from core.model_select_choice import EmailTemplatetype
+from core.model_select_choice import MailConfigType
 
 class EmailTemplateContent(models.Model):
     category = models.ManyToManyField(Category, related_name="email_templates", blank=True)
@@ -25,13 +26,15 @@ class EmailAttachment(models.Model):
 
 
 class EmailConfig(models.Model):
+    type = models.CharField(max_length=25, choices=MailConfigType, default=MailConfigType.SMTP, blank=True, null=True)
     server = models.CharField(blank=True, max_length=50, null=True)
-    email = models.EmailField(max_length=255)
-    host_user = models.CharField(max_length=255)
-    host_password = models.CharField(max_length=255)
-    host = models.CharField(max_length=255)
-    port = models.CharField(max_length=10)
+    email = models.EmailField(max_length=255, blank=True, null=True)
+    host_user = models.CharField(max_length=255,blank=True, null=True)
+    host_password = models.CharField(max_length=255,blank=True, null=True)
+    host = models.CharField(max_length=255, blank=True, null=True)
+    port = models.CharField(max_length=10, blank=True, null=True)
     tls = models.BooleanField(default=True)
+    api_key = models.CharField(max_length=500, blank=True, null=True)
     ssl = models.BooleanField(default=False)
     is_default = models.BooleanField(default=False)
     today_count = models.PositiveIntegerField(default=0, blank=True, null=True)
@@ -51,7 +54,7 @@ class EmailConfig(models.Model):
     
     
     def __str__(self):
-        return f"{self.email} | {self.host} | LIMIT {self.daily_limit} | Active: {self.is_active}"
+        return f"{self.email} | {self.host} | LIMIT {self.daily_limit} | Active: {self.is_active}" if self.email else f"{self.server} | {self.api_key}"
 
 
 

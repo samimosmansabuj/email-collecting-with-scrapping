@@ -26,3 +26,7 @@ class EmailTemplatetype(models.TextChoices):
     MASTER = "master"
     FOOTER_HOOK = "footer_hook"
     SIGNATURE_HOOK = "signature_hook"
+
+class MailConfigType(models.TextChoices):
+    SMTP = "smtp"
+    API = "api"

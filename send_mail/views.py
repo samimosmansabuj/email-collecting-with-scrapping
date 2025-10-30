@@ -16,10 +16,12 @@ from core.model_select_choice import EmailTemplatetype
 from django.utils import timezone
 from collections import deque
 from core.utils import AllListMarge
+from core.model_select_choice import MailConfigType
 import random
 import re
 from .models import EmailConfig
 import time
+import requests
 
 class Emaillist(View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
@@ -342,7 +344,6 @@ class EmailSendWithServer(View):
         print("*******************************************************")
         email_object = AllListMarge.search_by_email(email=emailInput)
         if not email_object:
-            # return JsonResponse({"ok": True, "found": False})
             return JsonResponse({"ok": False, "message":"Mail Object Not Found!"}, status=404)
         
         try:
@@ -351,32 +352,50 @@ class EmailSendWithServer(View):
             print("*******************************************************")
             return JsonResponse({"ok": False, "message": "Host not found"}, status=404)
         
-        try:
-            msg, subject = self.get_dynamical_block_update()
-            msg=MIMEText(msg)
-            msg['Subject'] = subject
-            msg['From'] = mail_server.email
-            msg['To'] = email_object.email
-            print(f"Connect to Mail Server  >>> {mail_server}")
-            server = SMTP(host=mail_server.host, port=mail_server.port)
-            server.starttls()
-            server.login(mail_server.host_user, mail_server.host_password)
-            print("Mail Server Connected!")
-            print(f"Mail Sending to {email_object.email}...")
-            server.sendmail(
-                from_addr=mail_server.email, to_addrs=email_object.email, msg=msg.as_string()
-            )
-            
-            email_object.send_mail = True
-            email_object.last_mail_server = mail_server
-            email_object.last_sent_at = timezone.now()
-            email_object.save()
-            
-            print(f"Email sent to '{emailInput}' successfully!")
-            print("*******************************************************")
-        except Exception as e:
-            print("*******************************************************")
-            return JsonResponse({"ok": False, "message": str(e)}, status=404)
-        
-        return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
+        if mail_server.type == MailConfigType.API:
+            api_key = mail_server.api_key
+            url = "https://connect.mailerlite.com/api"
+            # url = "https://api.mailerlite.com/api/v2"
+            header = {
+                "Authorization": f"Bearer {mail_server.api_key}"
+            }
+            res = requests.post(url=url, headers=header)
+            try:
+                data = res.json()
+            except ValueError:
+                print("Response is not JSON! Here's what came:")
+                print(res.text)
+            print("res: ", data)
+            return JsonResponse({"ok": False, "message": "Ok"}, status=404)
+        else:
+            try:
+                msg, subject = self.get_dynamical_block_update()
+                msg=MIMEText(msg)
+                msg['Subject'] = subject
+                msg['From'] = mail_server.email
+                msg['To'] = email_object.email
+                print(f"Connect to Mail Server  >>> {mail_server}")
+                server = SMTP(host=mail_server.host, port=mail_server.port)
+                server.starttls()
+                server.login(mail_server.host_user, mail_server.host_password)
+                print("Mail Server Connected!")
+                print(f"Mail Sending to {email_object.email}...")
+                server.sendmail(
+                    from_addr=mail_server.email, to_addrs=email_object.email, msg=msg.as_string()
+                )
+                
+                email_object.send_mail = True
+                email_object.last_mail_server = mail_server
+                email_object.last_sent_at = timezone.now()
+                email_object.save()
+                
+                print(f"Email sent to '{emailInput}' successfully!")
+                print("*******************************************************")
+                return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
+            except Exception as e:
+                print("*******************************************************")
+                return JsonResponse({"ok": False, "message": str(e)}, status=404)
+
+
+
 

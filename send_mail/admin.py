@@ -66,6 +66,7 @@ class EmailConfigAdmin(admin.ModelAdmin):
         "port",
         "tls",
         "ssl",
+        "type",
         "is_default",
         "is_active",
         "daily_limit",
@@ -73,14 +74,14 @@ class EmailConfigAdmin(admin.ModelAdmin):
         "today_complete",
         "today_date",
     )
-    list_filter = ("is_active", "is_default", "tls", "ssl", "host")
-    search_fields = ("email", "server", "host_user", "host")
+    list_filter = ("is_active", "is_default", "tls", "ssl", "host", "type")
+    search_fields = ("email", "server", "host_user", "host", "type")
     readonly_fields = ()
     actions = ("mark_active", "mark_inactive", "reset_today_count")
 
     fieldsets = (
         ("Connection", {
-            "fields": ("server", "email", "host_user", "host_password", "host", "port"),
+            "fields": ("server", "api_key", "email", "host_user", "host_password", "host", "port", "type"),
         }),
         ("Security", {
             "fields": ("tls", "ssl"),
