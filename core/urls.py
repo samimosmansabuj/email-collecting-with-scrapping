@@ -14,4 +14,8 @@ urlpatterns = [
     path("api/subcategories/<slug:category_slug>/", get_subcategories, name="api-subcategories"),
     path("api/get-mail-server/<slug:server>/", get_mail_server, name="api-get_mail_server"),
     path("api/fiverr-url-verify/", verified_fiverr_url, name="api-fiverrurlverify"),
+    
+    #Brevo Mail Status Webhook
+    path("api/brevo-webhook/", brevo_email_status_webhook, name="brevo_email_status_webhook"),
+    path("api/mail-image/", gmail_tracking_api, name="gmail_tracking_api"),
 ]

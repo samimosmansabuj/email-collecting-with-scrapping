@@ -13,8 +13,9 @@ from django.core.paginator import Paginator
 from django.db.models import Q
 from django.template.loader import render_to_string
 from core.model_select_choice import EmailTemplatetype
-from itertools import cycle
+from django.utils import timezone
 from collections import deque
+from core.utils import AllListMarge
 import random
 import re
 from .models import EmailConfig
@@ -95,7 +96,6 @@ def single_mail_check(request):
         status, msg = email_check.full_email_check()
         return JsonResponse({"status": status, "message": msg})
     return render(request, "mail_verification/mail_check.html")
-
 
 class SendFilteringListEmail(View):
     success = 0
@@ -279,6 +279,8 @@ class SendFilteringListEmail(View):
                     
                     self.success += 1
                     email_object.send_mail = True
+                    email_object.last_mail_server = email_server
+                    email_object.last_sent_at = timezone.localtime(timezone.now())
                     email_object.save()
                     server.quit()
                     print("Server Disconnected!")
@@ -329,6 +331,7 @@ class EmailSendWithServer(View):
         signature_hook = self.replace_service_name(sh.body, "Web Development")
         
         msg_body = f"""Hi Sir,\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}\n\n{signature_hook}
+        <a href="https://ibb.co.com/kVdtDj1V"><img src="https://i.ibb.co.com/twd92gXw/samim-osman-blue-shirt.jpg" alt="samim-osman-blue-shirt" border="0"></a>
         """
         return msg_body, header_hook.subject
     
@@ -336,7 +339,13 @@ class EmailSendWithServer(View):
         server = request.POST.get('mail_server')
         mail_body = request.POST.get('mail_body')
         emailInput = request.POST.get('email')
+        self.emailaddress = emailInput
         print("*******************************************************")
+        email_object = AllListMarge.search_by_email(email=emailInput)
+        if not email_object:
+            # return JsonResponse({"ok": True, "found": False})
+            return JsonResponse({"ok": False, "message":"Mail Object Not Found!"}, status=404)
+        
         try:
             mail_server = EmailConfig.objects.get(server=server)
         except EmailConfig.DoesNotExist:
@@ -348,16 +357,22 @@ class EmailSendWithServer(View):
             msg=MIMEText(msg)
             msg['Subject'] = subject
             msg['From'] = mail_server.email
-            msg['To'] = emailInput
+            msg['To'] = email_object.email
             print(f"Connect to Mail Server  >>> {mail_server}")
             server = SMTP(host=mail_server.host, port=mail_server.port)
             server.starttls()
             server.login(mail_server.host_user, mail_server.host_password)
             print("Mail Server Connected!")
-            print(f"Mail Sending to {emailInput}...")
+            print(f"Mail Sending to {email_object.email}...")
             server.sendmail(
-                from_addr=mail_server.email, to_addrs=emailInput, msg=msg.as_string()
+                from_addr=mail_server.email, to_addrs=email_object.email, msg=msg.as_string()
             )
+            
+            email_object.send_mail = True
+            email_object.last_mail_server = mail_server
+            email_object.last_sent_at = timezone.now()
+            email_object.save()
+            
             print(f"Email sent to '{emailInput}' successfully!")
             print("*******************************************************")
         except Exception as e:

@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseBadRequest
 from django.contrib.auth import logout
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.csrf import csrf_exempt
@@ -8,6 +8,9 @@ from freelancerr.models import FreelancerReviewListWithEmail
 from django.views.decorators.http import require_POST, require_GET
 from .models import Category, SubCategory
 from send_mail.models import EmailConfig
+from .utils import AllListMarge, _ts_to_dt
+from django.utils import timezone
+from django.conf import settings
 import json
 
 BUSINESS_NAME = "PyTeam"
@@ -95,3 +98,62 @@ def verified_fiverr_url(request):
             "message": "Only POST allowed!"
         }, status=405)
 
+
+@require_POST
+@csrf_exempt
+def brevo_email_status_webhook(request):
+    EVENTS = {
+        "request", "delivered", "hard_bounce", "soft_bounce",
+        "blocked", "spam", "invalid_email", "deferred", "click", "error",
+        "opened", "unique_opened", "unsubscribed", "proxy_open"
+    }
+    try:
+        payload = json.loads(request.body.decode("utf-8"))
+    except json.JSONDecodeError:
+        return HttpResponseBadRequest("invalid json")
+    print("payload: ", payload)
+    
+    event = payload.get("event", "")
+    email = (payload.get("email") or "").strip().lower()
+    ts_event = payload.get("ts_event") or payload.get("ts")
+    dt = _ts_to_dt(ts_event) if ts_event else None
+    
+    if not email or event not in EVENTS:
+        return HttpResponseBadRequest("missing/invalid fields")
+    
+    email_object = AllListMarge.search_by_email(email=email)
+    if not email_object:
+        return JsonResponse({"ok": True, "found": False})
+    
+    if email_object.last_provider_ts and ts_event and int(ts_event) <= int(email_object.last_provider_ts):
+        return JsonResponse({"ok": True, "skipped": "old_event"})
+    
+    email_object.last_event = event
+    if dt and not settings.USE_TZ and timezone.is_aware(dt):
+        dt = timezone.make_naive(dt)
+    email_object.last_event_at = dt
+    
+    if ts_event:
+        email_object.last_provider_ts = int(ts_event)
+    email_object.save()
+    
+    return JsonResponse({
+        "ok": True,
+        "event": event,
+        "email": email,
+        "found": bool(email_object),
+        "id": getattr(email_object, "id", None),
+    })
+
+
+# @require_GET
+def gmail_tracking_api(request):
+    email = request.GET.get("email", "")
+    print("email: ", email)
+    return JsonResponse({"ok": True, "health": True})
+    # try:
+    #     email = request.get("email", "")
+    #     print("email: ", email)
+    #     return JsonResponse({"ok": True, "health": True})
+    # except:
+    #     return JsonResponse({"ok": False, "health": False})

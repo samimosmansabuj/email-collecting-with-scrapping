@@ -1,6 +1,7 @@
 from django.db import models
 from core.models import Category, SubCategory
 from core.model_select_choice import FOLLOW_UP_STAGE,LEAD_STAGE
+from send_mail.models import EmailConfig
 import re
 
 class FreelancerCompleteProfileDetails(models.Model):
@@ -44,10 +45,25 @@ class FreelancerReviewListWithEmail(models.Model):
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
     most_important = models.BooleanField(default=False)
+    
+    # update only When mail send-----------------
     send_mail = models.BooleanField(default=False)
+    last_mail_server = models.ForeignKey(EmailConfig, on_delete=models.SET_NULL, related_name="freelancer_send_mails", blank=True, null=True)
+    last_sent_at = models.DateTimeField(blank=True, null=True)
+    
+    # Webhook or Mail Status Callback-----------------
+    last_event = models.CharField(max_length=32, blank=True, null=True, db_index=True)
+    last_event_at = models.DateTimeField(blank=True, null=True)
+    last_provider_ts = models.BigIntegerField(blank=True, null=True)
     follow_up = models.BooleanField(default=False)
     follow_up_stage = models.CharField(max_length=50, choices=FOLLOW_UP_STAGE, blank=True, null=True)
     lead_stage = models.CharField(max_length=50, choices=LEAD_STAGE, blank=True, null=True)
+    
+    deferred_count = models.PositiveIntegerField(default=0)
+    open_count = models.PositiveIntegerField(default=0)
+    click_count = models.PositiveIntegerField(default=0)
+    send_count = models.PositiveIntegerField(default=0)
+    
     
     def extract_amount(self, price_tag: str):
         clean = price_tag.replace(",", "")
@@ -80,9 +96,40 @@ class FreelancerReviewListWithEmail(models.Model):
                 return levels[i].lower()
         return levels[-1].lower()
     
+    
+    def reset_lead(self):
+        self.send_mail = False
+        self.follow_up = False
+    
+    def update_follow_up_and_lead_stage(self, event):
+        if event in {"delivered"}:
+            self.send_count = (self.send_count or 0) + 1
+            self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_01
+            self.lead_stage = self.lead_stage or LEAD_STAGE.NOT_RESPONSE
+            self.follow_up = True
+        elif event in {"opened", "unique_opened"}:
+            self.open_count = (self.open_count or 0) + 1
+            self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_03
+            self.lead_stage = LEAD_STAGE.FOLLOW_UP
+            self.follow_up = True
+        elif event in {"click"}:
+            self.click_count = (self.click_count or 0) + 1
+            self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_04
+            self.lead_stage = LEAD_STAGE.RESPONSE
+            self.follow_up = True
+        elif event in {"unsubscribed", "blocked"}:
+            self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_06
+            self.lead_stage = LEAD_STAGE.NOT_QUALIFIED
+            self.reset_lead()
+        elif event in {"hard_bounce", "soft_bounce", "spam", "error", "deferred", "invalid_email", "proxy_open"}:
+            self.deferred_count = (self.deferred_count or 0) + 1
+            # if self.deferred_count >= 3:
+            self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_06
+            self.lead_stage = LEAD_STAGE.LOST
+            self.follow_up = False
+    
     def save(self, *args, **kwargs):
         self.proficiency = self.get_price_proficiency(self.price_tag) if self.price_tag != "N/A" else "medium"
-        
         if self.country:
             try:
                 print(f"self.country.split(',') [{self.country}]: ", self.country.split(",")[1])
@@ -90,7 +137,7 @@ class FreelancerReviewListWithEmail(models.Model):
             except:
                 country = self.country
             self.country = country.strip()
-        
+        self.update_follow_up_and_lead_stage(self.last_event)
         return super().save(*args, **kwargs)
     
     def __str__(self):

@@ -3,6 +3,11 @@ import smtplib
 import socket
 import dns.resolver
 from django.utils.text import slugify
+from django.utils.timezone import make_aware
+from datetime import datetime
+
+
+from itertools import chain
 
 class EmailGenerate:
     def __init__(self, email):
@@ -74,5 +79,49 @@ def generate_unique_slug(model_object, field_value, old_slug=None):
         return unique_slug
     else:
         return old_slug
+
+
+class AllListMarge():
+    def __init__(self):
+        from freelancerr.models import FreelancerReviewListWithEmail
+        from fiverr.models import FiverrReviewListWithEmail
+        
+        self.fiverr = FiverrReviewListWithEmail.objects.all()
+        self.freelancer = FreelancerReviewListWithEmail.objects.all()
+    
+    def all_list(self):
+        marge_list = list(chain(self.fiverr, self.freelancer))
+        return marge_list
+    
+    def list_order_by_created_date(self):
+        marge_list = self.all_list()
+        marge_list.sort(key=lambda o: getattr(o, "created_at", None) or getattr(o, "id"), reverse=True)
+        return marge_list
+
+    def list_order_by_id(self):
+        marge_list = self.all_list()
+        marge_list.sort(key=lambda o: getattr(o, "id"), reverse=True)
+        return marge_list
+    
+    @staticmethod
+    def search_by_email(email: str):
+        from freelancerr.models import FreelancerReviewListWithEmail
+        from fiverr.models import FiverrReviewListWithEmail
+
+        e = (email or "").strip().lower()
+        if not e:
+            return None
+
+        obj = FiverrReviewListWithEmail.objects.filter(email__iexact=e).first()
+        if obj:
+            return obj
+        return FreelancerReviewListWithEmail.objects.filter(email__iexact=e).first()
+
+
+def _ts_to_dt(ts: int):
+    try:
+        return datetime.utcfromtimestamp(int(ts))  # naive
+    except Exception:
+        return None
 
 
