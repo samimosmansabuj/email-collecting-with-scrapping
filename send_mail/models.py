@@ -29,6 +29,7 @@ class EmailConfig(models.Model):
     type = models.CharField(max_length=25, choices=MailConfigType, default=MailConfigType.SMTP, blank=True, null=True)
     server = models.CharField(blank=True, max_length=50, null=True)
     email = models.EmailField(max_length=255, blank=True, null=True)
+    name = models.CharField(max_length=50, blank=True, null=True)
     host_user = models.CharField(max_length=255,blank=True, null=True)
     host_password = models.CharField(max_length=255,blank=True, null=True)
     host = models.CharField(max_length=255, blank=True, null=True)

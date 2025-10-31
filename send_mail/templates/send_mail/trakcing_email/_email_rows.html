@@ -1,0 +1,17 @@
+{% for data in data_list %}
+<tr>
+  <td>{{ forloop.counter0|add:1|stringformat:"02d" }}</td>
+  <td>{{ data.email }}</td>
+  <td>{{ data.last_mail_server.server }}</td>
+  <td>{{ data.country }}</td>
+  <td>{{ data.last_event }}</td>
+  <td>{{ data.last_event_at }}</td>
+  <td>{{ data.category }}</td>
+  <td>{{ data.sub_category }}</td>
+  <td>{{ data.follow_up_stage }}</td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="9" class="no-data">No matches for the selected filters.</td>
+</tr>
+{% endfor %}

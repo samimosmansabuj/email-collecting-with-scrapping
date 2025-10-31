@@ -1,0 +1,196 @@
+<!-- Include Filter Data  -->
+<form id="filterForm" method="get" class="filter-bar" style="margin:5px 0; display:grid; gap:10px; grid-template-columns: repeat(11, minmax(100px, 1fr)); align-items:end">
+    <!-- <div>
+        <label for="q" style="font-size:12px;color:#243447;">Search</label>
+        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="email / review"
+            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+    </div> -->
+
+    <div>
+        <label for="country" style="font-size:12px;color:#243447;">Country</label>
+        <select id="country" name="country" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            {% for c in countries %}
+            <option value="{{ c }}" {% if request.GET.country == c %}selected{% endif %}>{{ c }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="proficiency" style="font-size:12px;color:#243447;">Proficiency</label>
+        <select id="proficiency" name="proficiency"
+            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            {% for pr in proficiencies %}
+            <option value="{{ pr }}" {% if request.GET.proficiency == pr %}selected{% endif %}>{{ pr }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="category" style="font-size:12px;color:#243447;">Category</label>
+        <select id="category" name="category" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            {% for cat in categories %}
+            <option value="{{ cat.slug }}" {% if request.GET.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="sub_category" style="font-size:12px;color:#243447;">Sub-category</label>
+        <select id="sub_category" name="sub_category" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;" disabled>
+            <option value="">All</option>
+        </select>
+    </div>
+
+    <div>
+        <label for="repeated" style="font-size:12px;color:#243447;">Repeated</label>
+        <select id="repeated" name="repeated" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.repeated == '1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.repeated == '0' %}selected{% endif %}>No</option>
+        </select>
+    </div>
+    <div>
+        <label for="send_mail" style="font-size:12px;color:#243447;">Mail Send</label>
+        <select id="send_mail" name="send_mail" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.repeated == '1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.repeated == '0' %}selected{% endif %}>No</option>
+        </select>
+    </div>
+
+    <div style="grid-column: span 4 / auto; display:flex; gap:8px;">
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+        <a href="." class="btn" style="border:1px solid #ddd;">Reset</a>
+        <button type="button" class="btn btn-primary" name="send_mail_multiple" id="sendMailMultipleBtn" data-post-url="{% url 'collection_email_send_multiple' %}">Mail Send</button>
+    </div>
+</form>
+
+<script>
+    const categoryEl = document.getElementById('category');
+    const subcatEl = document.getElementById('sub_category');
+    function resetSubcats(placeholder = '-- Select Sub-category --', disable = true) {
+      subcatEl.innerHTML = `<option value="">${placeholder}</option>`;
+      subcatEl.disabled = disable;
+    }
+    categoryEl.addEventListener('change', async (e) => {
+      const slug = e.target.value;
+      if (!slug) { resetSubcats(); return; }
+
+      resetSubcats('Loading...', true);
+
+      try {
+        const res = await fetch(`/api/subcategories/${encodeURIComponent(slug)}/`, {
+          headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        });
+        const data = await res.json();
+
+        if (!data.ok) { resetSubcats('No sub-categories found', true); return; }
+
+        resetSubcats('-- Select Sub-category --', false);
+        data.results.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.slug;   // will post the slug
+          opt.textContent = s.name;
+          subcatEl.appendChild(opt);
+        });
+
+        if (data.results.length === 0) resetSubcats('No sub-categories', true);
+      } catch (err) {
+        console.error('Subcategory fetch error:', err);
+        resetSubcats('Failed to load', true);
+      }
+    });
+</script>
+
+<script>
+  (function () {
+    const form   = document.getElementById("filterForm");
+    const btn    = document.getElementById("sendMailMultipleBtn");
+    const overlay = document.getElementById("ajaxLoading");
+    const hint   = document.getElementById("result_hint");
+
+    if (!form || !btn) return;
+
+    let currentController = null;
+    let loaderTimer = null;
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function showLoaderDelayed() {
+      clearTimeout(loaderTimer);
+      loaderTimer = setTimeout(() => {
+        overlay && overlay.classList.add('show');
+        Array.from(form.elements).forEach(el => el.disabled = true);
+        btn.disabled = true;
+      }, 150);
+    }
+    function hideLoader() {
+      clearTimeout(loaderTimer);
+      overlay && overlay.classList.remove('show');
+      Array.from(form.elements).forEach(el => el.disabled = false);
+      btn.disabled = false;
+    }
+
+    async function postForm(url) {
+      if (!url) return;
+    
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
+
+      const fd = new FormData(form);
+      fd.delete('page');
+      
+      showLoaderDelayed();
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          body: fd,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+          },
+          signal: currentController.signal,
+          cache: 'no-store'
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        // ইউজারকে ফিডব্যাক
+        if (hint) {
+          const msg = data.message || `Done. Processed: ${data.processed ?? 0}`;
+          hint.textContent = msg;
+        }
+
+        // অ্যাকশনের পরে লিস্টটা রিফ্রেশ করতে চাইলে:
+        // ১) AJAX ফিল্টার স্ক্রিপ্টকে রিইউজ করে ফর্ম সাবমিট ইভেন্ট ট্রিগার
+        // const ev = new Event('submit', { bubbles: true, cancelable: true });
+        // form.dispatchEvent(ev);
+
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          if (hint) hint.textContent = 'Mail send failed. Please try again.';
+        }
+      } finally {
+        hideLoader();
+        currentController = null;
+      }
+    }
+
+    btn.addEventListener('click', function () {
+      const url = btn.getAttribute('data-post-url');
+      postForm(url);
+    });
+  })();
+</script>
+

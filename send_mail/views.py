@@ -99,101 +99,110 @@ def single_mail_check(request):
         return JsonResponse({"status": status, "message": msg})
     return render(request, "mail_verification/mail_check.html")
 
-class SendFilteringListEmail(View):
+class SendEmailFilteringList(View):
     success = 0
     failed = 0
     cancel = 0
     
-    def replace_service_name(self, text: str, service: str) -> str:
+    def replace_service_name(self, text: str, service=None, name=None, email=None) -> str:
         text = text or ""
-        return re.sub(r"\[\s*category_name\s*\]", f"{service}", text, flags=re.IGNORECASE).strip()
+
+        if name is not None:
+            text = re.sub(r"\[\s*my_name\s*\]", str(name), text, flags=re.IGNORECASE)
+        if service is not None:
+            text = re.sub(r"\[\s*category_name\s*\]", str(service), text, flags=re.IGNORECASE)
+        if email is not None:
+            text = re.sub(r"\[\s*my_email\s*\]", str(email), text, flags=re.IGNORECASE)
+        
+        return text.strip()
     
     def get_dynamical_block_update(self, email_object, email_server):
-        mt = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.MASTER).first()
+        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK).first()
+        ch = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK, category=email_object.category)
+        chh = random.choice(list(ch)) if ch.exists() else None
         fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK).first()
-        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK, category=email_object.category)
         sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK).first()
         
-        master_template = self.replace_service_name(mt.body, email_object.sub_category.name)
-        header_hook = random.choice(list(hh)) if hh.exists() else None
-        footer_hook = self.replace_service_name(fh.body, email_object.sub_category.name)
-        signature_hook = self.replace_service_name(sh.body, "Web Development")
+        header_hook = self.replace_service_name(hh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        content_hook = self.replace_service_name(chh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        footer_hook = self.replace_service_name(fh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        signature_hook = self.replace_service_name(sh.body, email_object.sub_category.name, email_server.name, email_server.email)
         
-        msg_body = f"""Hi {email_object.username},\n{master_template}\n{header_hook.body.strip() if header_hook else ""}\n{footer_hook}\n\n{signature_hook}
+        msg_body = f"""Hi {email_object.username},\n{header_hook}\n{content_hook if content_hook else ""}\n{footer_hook}\n\n{signature_hook}
         """
         
         msg=MIMEText(msg_body)
-        msg['Subject'] = header_hook.subject if header_hook else None
+        msg['Subject'] = chh.subject if chh else None
         msg['From'] = email_server.email
         msg['To'] = email_object.email
         return msg
     
-    def get(self, request, *args, **kwargs):
-        send = request.GET.get("send", 0)
-        dummy_list = ["shawon.quantumedge@gmail.com", "	imtiaz.quantumdev@gmai.com", "jewelhfahim@gmail.com", "samim.o.sabuj03@gmail.com", "samim.o.sabuj02@gmail.com", "samim.o.sabuj01@gmail.com", "rajibhasanshawon@gmail.com"]
-        # dummy_list = ["rajibhasanshawon@gmail.com"]
-        # mailer_list = FiverrReviewListWithEmail.objects.all().order_by("-created_at")[:6]
-        mailer_list = FiverrReviewListWithEmail.objects.filter(email__in=dummy_list)[:6]
+    # def get(self, request, *args, **kwargs):
+    #     send = request.GET.get("send", 0)
+    #     dummy_list = ["shawon.quantumedge@gmail.com", "	imtiaz.quantumdev@gmai.com", "jewelhfahim@gmail.com", "samim.o.sabuj03@gmail.com", "samim.o.sabuj02@gmail.com", "samim.o.sabuj01@gmail.com", "rajibhasanshawon@gmail.com"]
+    #     # dummy_list = ["rajibhasanshawon@gmail.com"]
+    #     # mailer_list = FiverrReviewListWithEmail.objects.all().order_by("-created_at")[:6]
+    #     mailer_list = FiverrReviewListWithEmail.objects.filter(email__in=dummy_list)[:6]
 
-        if int(send) == 1:
-            email_servers = deque(list(EmailConfig.objects.filter(is_active=True, today_complete=False)))
-            random.shuffle(email_servers)
-            if not email_servers:
-                raise ValueError("No active Email Server to use")
+    #     if int(send) == 1:
+    #         email_servers = deque(list(EmailConfig.objects.filter(is_active=True, today_complete=False)))
+    #         random.shuffle(email_servers)
+    #         if not email_servers:
+    #             raise ValueError("No active Email Server to use")
                   
-            for email_object in mailer_list:
-                time.sleep(1)
-                print("*****************************************************************************************************")
-                attempts = 0
-                last_exc = None
-                while attempts < len(email_servers):
-                    email_server = email_servers[0]
-                    try:
-                        print(f"Connect to Mail Server  >>> {email_server}")
-                        server = SMTP(email_server.host, email_server.port)
-                        server.starttls()
-                        server.login(email_server.host_user, email_server.host_password)
-                        print(f"Server Connected  >>> {email_server}")
-                        break
-                    except Exception as e:
-                        last_exc = e
-                        print(f"Failed {str(e)} with {email_server}. Trying another...")
-                        email_servers.rotate(-1)
-                        attempts += 1
-                else:
-                    print(f"All servers failed for {email_object}. Last error: {last_exc}")
-                    self.failed += 1
-                time.sleep(1)
-                try:
-                    print("Template Generate Processing......")
-                    msg = self.get_dynamical_block_update(email_object, email_server)
-                    print("Template Generate Complete!")
+    #         for email_object in mailer_list:
+    #             time.sleep(1)
+    #             print("*****************************************************************************************************")
+    #             attempts = 0
+    #             last_exc = None
+    #             while attempts < len(email_servers):
+    #                 email_server = email_servers[0]
+    #                 try:
+    #                     print(f"Connect to Mail Server  >>> {email_server}")
+    #                     server = SMTP(email_server.host, email_server.port)
+    #                     server.starttls()
+    #                     server.login(email_server.host_user, email_server.host_password)
+    #                     print(f"Server Connected  >>> {email_server}")
+    #                     break
+    #                 except Exception as e:
+    #                     last_exc = e
+    #                     print(f"Failed {str(e)} with {email_server}. Trying another...")
+    #                     email_servers.rotate(-1)
+    #                     attempts += 1
+    #             else:
+    #                 print(f"All servers failed for {email_object}. Last error: {last_exc}")
+    #                 self.failed += 1
+    #             time.sleep(1)
+    #             try:
+    #                 print("Template Generate Processing......")
+    #                 msg = self.get_dynamical_block_update(email_object, email_server)
+    #                 print("Template Generate Complete!")
                     
-                    print(f"Email Sending to {email_object.email}...")
-                    server.sendmail(
-                        from_addr=email_server.email, to_addrs=email_object.email, msg=msg.as_string()
-                    )
-                    print(f"Email sent to '{email_object.email}' successfully!")
+    #                 print(f"Email Sending to {email_object.email}...")
+    #                 server.sendmail(
+    #                     from_addr=email_server.email, to_addrs=email_object.email, msg=msg.as_string()
+    #                 )
+    #                 print(f"Email sent to '{email_object.email}' successfully!")
                     
-                    self.success += 1
-                    email_object.send_mail = True
-                    email_object.save()
-                    server.quit()
-                    print("Server Disconnected!")
-                    email_servers.rotate(-1)
-                except Exception as e:
-                    print(f"Failed to Sending Email: {str(e)}")
-                    # email_servers.rotate(-1)
-                    self.failed += 1
-                print("*****************************************************************************************************")
-                time.sleep(1)
+    #                 self.success += 1
+    #                 email_object.send_mail = True
+    #                 email_object.save()
+    #                 server.quit()
+    #                 print("Server Disconnected!")
+    #                 email_servers.rotate(-1)
+    #             except Exception as e:
+    #                 print(f"Failed to Sending Email: {str(e)}")
+    #                 # email_servers.rotate(-1)
+    #                 self.failed += 1
+    #             print("*****************************************************************************************************")
+    #             time.sleep(1)
                             
-        status_count = {
-            "success": self.success,
-            "failed": self.failed,
-            "cancel": self.cancel
-        }
-        return JsonResponse({"status": True, "health": True, "status_count": status_count})
+    #     status_count = {
+    #         "success": self.success,
+    #         "failed": self.failed,
+    #         "cancel": self.cancel
+    #     }
+    #     return JsonResponse({"status": True, "health": True, "status_count": status_count})
 
     def apply_filters(self, qs, country, proficiency, category, sub_category, repeated, send_mail):
         if country: qs = qs.filter(country=country)
@@ -222,7 +231,7 @@ class SendFilteringListEmail(View):
     def post(self, request, *args, **kwargs):
         try:
             # dummy_list = ["shawon.quantumedge@gmail.com", "	imtiaz.quantumdev@gmai.com", "jewelhfahim@gmail.com", "samim.o.sabuj03@gmail.com", "samim.o.sabuj02@gmail.com", "samim.o.sabuj01@gmail.com", "rajibhasanshawon@gmail.com"]
-            # marge_data = FiverrReviewListWithEmail.objects.filter(email__in=dummy_list)[:6]
+            # marge_data = FiverrReviewListWithEmail.objects.filter(email__in=dummy_list)[:2]
             marge_data = self.get_marged_list(request)
             print("Total Data: >>>", len(marge_data), "<<<")
             
@@ -282,7 +291,7 @@ class SendFilteringListEmail(View):
                     self.success += 1
                     email_object.send_mail = True
                     email_object.last_mail_server = email_server
-                    email_object.last_sent_at = timezone.localtime(timezone.now())
+                    email_object.last_sent_at = timezone.now()
                     email_object.save()
                     server.quit()
                     print("Server Disconnected!")
@@ -317,24 +326,36 @@ class EmailSendWithServer(View):
         mail_server = EmailConfig.objects.filter(is_active=True)
         return render(request, "send_mail/mail_send_manual.html", {"mail_server": mail_server})
     
-    def replace_service_name(self, text: str, service: str) -> str:
+    def replace_service_name(self, text: str, service=None, name=None, email=None) -> str:
         text = text or ""
-        return re.sub(r"\[\s*category_name\s*\]", f"{service}", text, flags=re.IGNORECASE).strip()
+
+        if name is not None:
+            text = re.sub(r"\[\s*my_name\s*\]", str(name), text, flags=re.IGNORECASE)
+        if service is not None:
+            text = re.sub(r"\[\s*category_name\s*\]", str(service), text, flags=re.IGNORECASE)
+        if email is not None:
+            text = re.sub(r"\[\s*my_email\s*\]", str(email), text, flags=re.IGNORECASE)
+        
+        return text.strip()
     
-    def get_dynamical_block_update(self):
-        mt = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.MASTER).first()
+    def get_dynamical_block_update(self, email_object, email_server):
+        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK).first()
+        ch = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK)
+        chh = random.choice(list(ch)) if ch.exists() else None
         fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK).first()
-        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK)
         sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK).first()
         
-        master_template = self.replace_service_name(mt.body, "Web Development")
-        header_hook = random.choice(list(hh)) if hh.exists() else None
-        footer_hook = self.replace_service_name(fh.body, "Web Development")
-        signature_hook = self.replace_service_name(sh.body, "Web Development")
+        header_hook = self.replace_service_name(hh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        content_hook = self.replace_service_name(chh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        footer_hook = self.replace_service_name(fh.body, email_object.sub_category.name, email_server.name, email_server.email)
+        signature_hook = self.replace_service_name(sh.body, email_object.sub_category.name, email_server.name, email_server.email)
         
-        msg_body = f"""Hi Sir,\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}\n\n{signature_hook}\n<img src="https://emailscraping.mnimedu.com/api/mail-image/?email=samim.o.sabuj03@gmail.com" width="1" height="1" alt="" style="border:0; outline:0; text-decoration:none;">
+        msg_body = f"""Hi {email_object.username},\n{header_hook}\n\n{content_hook if content_hook else ""}\n\n{footer_hook}\n\n{signature_hook}\n<img src="https://emailscraping.mnimedu.com/api/mail-image/?email=samim.o.sabuj03@gmail.com" width="1" height="1" alt="" style="border:0; outline:0; text-decoration:none;">
         """
-        return msg_body, header_hook.subject
+        
+        # msg_body = f"""Hi Sir,\n{master_template}\n{header_hook.body.strip()}\n{footer_hook}\n\n{signature_hook}\n<img src="https://emailscraping.mnimedu.com/api/mail-image/?email=samim.o.sabuj03@gmail.com" width="1" height="1" alt="" style="border:0; outline:0; text-decoration:none;">
+        # """
+        return msg_body, chh.subject if chh else None
     
     def post(self, request, *args, **kwargs):
         server = request.POST.get('mail_server')
@@ -369,7 +390,7 @@ class EmailSendWithServer(View):
             return JsonResponse({"ok": False, "message": "Ok"}, status=404)
         else:
             try:
-                msg, subject = self.get_dynamical_block_update()
+                msg, subject = self.get_dynamical_block_update(email_object, mail_server)
                 msg=MIMEText(msg)
                 msg['Subject'] = subject
                 msg['From'] = mail_server.email
@@ -396,6 +417,74 @@ class EmailSendWithServer(View):
                 print("*******************************************************")
                 return JsonResponse({"ok": False, "message": str(e)}, status=404)
 
+
+class EmailTrackingList(View):
+    def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
+        if q:
+            qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
+        if country: qs = qs.filter(country=country)
+        if proficiency: qs = qs.filter(proficiency=proficiency)
+        if category: qs = qs.filter(category__slug=category)
+        if sub_category: qs = qs.filter(sub_category__slug=sub_category)
+        if repeated in ("0", "1"): qs = qs.filter(repeated=bool(int(repeated)))
+        if send_mail in ("0", "1"): qs = qs.filter(send_mail=bool(int(send_mail)))
+        return qs
+    
+    def get_marged_list(self):
+        q           = (self.request.GET.get('q') or '').strip()
+        country     = self.request.GET.get('country') or ''
+        proficiency = self.request.GET.get('proficiency') or ''
+        category    = self.request.GET.get('category') or ''
+        sub_category = self.request.GET.get('sub_category') or ''
+        repeated    = self.request.GET.get('repeated')
+        send_mail    = self.request.GET.get('send_mail', "1")
+        
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated, send_mail)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated, send_mail)
+        
+        marged_list = list(chain(fiverr, freelancer))
+        marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
+        return marged_list
+    
+    def get(self, request, *args, **kwargs):
+        page_number = request.GET.get('page') or 1
+        per_page    = int(request.GET.get('per_page') or 20)
+        all_list = self.get_marged_list()
+        
+        has_filters = any(request.GET.get(k) not in (None, '') for k in
+                      ['q','country','price_tag','proficiency','category','sub_category','repeated', 'page'])
+        paginator = Paginator(all_list, per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        wants_partial = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('partial') == '1'
+        if wants_partial:
+            rows_html = render_to_string("send_mail/trakcing_email/_email_rows.html", {"data_list": page_obj.object_list})
+            pagination_html = render_to_string("send_mail/trakcing_email/_pagination.html", {
+                "page_obj": page_obj,
+                "request": request,  # needed to rebuild querystring
+            })
+            return JsonResponse({
+                "rows_html": rows_html,
+                "pagination_html": pagination_html,
+                "count": paginator.count,
+                "has_filters": has_filters,
+            })
+
+        context = {
+            "data_list": page_obj.object_list,
+            "count": paginator.count,
+            "has_filters": has_filters,
+            "page_obj": page_obj,
+            "countries": FiverrReviewListWithEmail.objects.values_list("country", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.values_list("country", flat=True).distinct().order_by("country")
+            ),
+            "proficiencies": FiverrReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().order_by("proficiency")
+            ),
+            "categories": Category.objects.all()            
+        }
+        
+        return render(request, "send_mail/trakcing_email/tracking_email_list.html", context)
 
 
 

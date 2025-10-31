@@ -17,13 +17,12 @@ class EmailAttachmentInline(admin.TabularInline):
 
 @admin.register(EmailTemplateContent)
 class EmailTemplateContentAdmin(admin.ModelAdmin):
-    inlines = [EmailAttachmentInline]
+    # inlines = [EmailAttachmentInline]
 
     list_display = (
-        "id",
         "type",
-        "subject",
         "is_active",
+        "subject",
         "for_proficiency",
         "response_count",
         "positive_rating",
@@ -62,13 +61,14 @@ class EmailAttachmentAdmin(admin.ModelAdmin):
 class EmailConfigAdmin(admin.ModelAdmin):
     list_display = (
         "email",
+        "name",
         "host",
         "port",
+        "is_active",
+        "is_default",
         "tls",
         "ssl",
         "type",
-        "is_default",
-        "is_active",
         "daily_limit",
         "today_count",
         "today_complete",
@@ -81,7 +81,7 @@ class EmailConfigAdmin(admin.ModelAdmin):
 
     fieldsets = (
         ("Connection", {
-            "fields": ("server", "api_key", "email", "host_user", "host_password", "host", "port", "type"),
+            "fields": ("server", "api_key", "name", "email", "host_user", "host_password", "host", "port", "type"),
         }),
         ("Security", {
             "fields": ("tls", "ssl"),
