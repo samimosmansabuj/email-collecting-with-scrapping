@@ -433,14 +433,14 @@ class EmailTrackingList(View):
     def get_marged_list(self):
         q           = (self.request.GET.get('q') or '').strip()
         country     = self.request.GET.get('country') or ''
-        proficiency = self.request.GET.get('proficiency') or ''
+        last_mail_server = self.request.GET.get('last_mail_server') or ''
         category    = self.request.GET.get('category') or ''
         sub_category = self.request.GET.get('sub_category') or ''
-        repeated    = self.request.GET.get('repeated')
+        event    = self.request.GET.get('event')
         send_mail    = self.request.GET.get('send_mail', "1")
         
-        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated, send_mail)
-        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, proficiency, category, sub_category, repeated, send_mail)
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, repeated, send_mail)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, repeated, send_mail)
         
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
@@ -452,7 +452,7 @@ class EmailTrackingList(View):
         all_list = self.get_marged_list()
         
         has_filters = any(request.GET.get(k) not in (None, '') for k in
-                      ['q','country','price_tag','proficiency','category','sub_category','repeated', 'page'])
+                      ['q','country','price_tag','last_mail_server','category','sub_category','repeated', 'page'])
         paginator = Paginator(all_list, per_page)
         page_obj = paginator.get_page(page_number)
         
@@ -478,9 +478,10 @@ class EmailTrackingList(View):
             "countries": FiverrReviewListWithEmail.objects.values_list("country", flat=True).distinct().union(
                 FreelancerReviewListWithEmail.objects.values_list("country", flat=True).distinct().order_by("country")
             ),
-            "proficiencies": FiverrReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().union(
-                FreelancerReviewListWithEmail.objects.values_list("proficiency", flat=True).distinct().order_by("proficiency")
+            "last_events": FiverrReviewListWithEmail.objects.values_list("last_event", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.values_list("last_event", flat=True).distinct().order_by("last_event")
             ),
+            "last_mail_servers": EmailConfig.objects.all(),
             "categories": Category.objects.all()            
         }
         
