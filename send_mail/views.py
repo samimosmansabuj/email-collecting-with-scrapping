@@ -419,14 +419,14 @@ class EmailSendWithServer(View):
 
 
 class EmailTrackingList(View):
-    def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
+    def apply_filters(self, qs, q, country, last_mail_server, category, sub_category, event, send_mail):
         if q:
             qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
         if country: qs = qs.filter(country=country)
-        if proficiency: qs = qs.filter(proficiency=proficiency)
+        if last_mail_server: qs = qs.filter(last_mail_server__id=last_mail_server)
         if category: qs = qs.filter(category__slug=category)
         if sub_category: qs = qs.filter(sub_category__slug=sub_category)
-        if repeated in ("0", "1"): qs = qs.filter(repeated=bool(int(repeated)))
+        if event: qs = qs.filter(last_event=event)
         if send_mail in ("0", "1"): qs = qs.filter(send_mail=bool(int(send_mail)))
         return qs
     
@@ -439,8 +439,8 @@ class EmailTrackingList(View):
         event    = self.request.GET.get('event')
         send_mail    = self.request.GET.get('send_mail', "1")
         
-        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, repeated, send_mail)
-        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, repeated, send_mail)
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
         
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
