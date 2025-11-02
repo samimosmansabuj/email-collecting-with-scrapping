@@ -45,5 +45,14 @@ class InvalidUsernameEmail(models.Model):
     def __str__(self):
         return self.username
 
+class BrevoEventLogs(models.Model):
+    mail_server_name = models.CharField(max_length=50, blank=True, null=True)
+    webhook_json = models.JSONField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now=True)
+    updated_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        email = self.webhook_json.get("email")
+        return f"{self.pk} | {self.mail_server_name} | {email}"
     
 

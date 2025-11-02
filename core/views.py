@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from fiverr.models import FiverrReviewListWithEmail, FiverrCompleteGigDetails
 from freelancerr.models import FreelancerReviewListWithEmail
 from django.views.decorators.http import require_POST, require_GET
-from .models import Category, SubCategory
+from .models import Category, SubCategory, BrevoEventLogs
 from send_mail.models import EmailConfig
 from .utils import AllListMarge, _ts_to_dt
 from django.utils import timezone
@@ -112,7 +112,7 @@ def brevo_email_status_webhook(request):
         payload = json.loads(request.body.decode("utf-8"))
     except json.JSONDecodeError:
         return HttpResponseBadRequest("invalid json")
-    print("payload: ", payload)
+    BrevoEventLogs.objects.create(webhook_json=payload)
     
     event = payload.get("event", "")
     email = (payload.get("email") or "").strip().lower()
@@ -137,7 +137,7 @@ def brevo_email_status_webhook(request):
     if ts_event:
         email_object.last_provider_ts = int(ts_event)
     email_object.save()
-    
+    print(f"webhook ok for : {email}", True)
     return JsonResponse({
         "ok": True,
         "event": event,

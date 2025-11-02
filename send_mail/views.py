@@ -22,6 +22,7 @@ import re
 from .models import EmailConfig
 import time
 import requests
+import os
 
 class Emaillist(View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
@@ -240,7 +241,9 @@ class SendEmailFilteringList(View):
             if not email_servers:
                 # raise ValueError("No active Email Server to use")
                 return JsonResponse({"status": "error", "message": "Not Email Server Available!"}, status=400)
-            total_mailsend_available = len(email_servers) * 20
+            email_send_at_a_time = os.getenv("SEND_MAIL_AT_A_TIME" or 10)
+            print("email_send_at_a_time: ", email_send_at_a_time)
+            total_mailsend_available = len(email_servers) * 10
             print("Total Email Server Exist: ", len(email_servers))
             
             loop = 1

@@ -1,9 +1,10 @@
 from django.contrib import admin
-from .models import Category, SubCategory, PremiumProfileLink, InvalidUsernameEmail
+from .models import Category, SubCategory, PremiumProfileLink, InvalidUsernameEmail, BrevoEventLogs
 
 admin.site.register(Category)
 admin.site.register(SubCategory)
 admin.site.register(PremiumProfileLink)
+admin.site.register(BrevoEventLogs)
 
 @admin.register(InvalidUsernameEmail)
 class InvalidUsernameEmailAdmin(admin.ModelAdmin):
