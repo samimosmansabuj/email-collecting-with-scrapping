@@ -121,7 +121,7 @@ class FreelancerReviewListWithEmail(models.Model):
             self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_06
             self.lead_stage = LEAD_STAGE.NOT_QUALIFIED
             self.reset_lead()
-        elif event in {"hard_bounce", "soft_bounce", "spam", "error", "deferred", "invalid_email", "proxy_open"}:
+        elif event in {"hard_bounce", "soft_bounce", "spam", "error", "deferred", "invalid_email", "proxy_open", "unique_proxy_open"}:
             self.deferred_count = (self.deferred_count or 0) + 1
             # if self.deferred_count >= 3:
             self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_06

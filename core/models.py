@@ -53,6 +53,15 @@ class BrevoEventLogs(models.Model):
     
     def __str__(self):
         email = self.webhook_json.get("email")
-        return f"{self.pk} | {self.mail_server_name} | {email}"
-    
+        event = self.webhook_json.get("event")
+        return f"{self.pk} | {self.mail_server_name} | {email} | {event}"
 
+class EmailOpenLog(models.Model):
+    mail_server_name = models.CharField(max_length=50, blank=True, null=True)
+    email = models.EmailField(max_length=255, blank=True, null=True)
+    ip = models.CharField(max_length=50, blank=True, null=True)
+    open_count = models.PositiveIntegerField(blank=True, null=True)
+    opened_at = models.DateTimeField(blank=True, null=True)
+    
+    def __str__(self):
+        return f"{self.pk} | {self.mail_server_name} | {self.email} | {self.open_count}"

@@ -6,7 +6,7 @@ from django.views.decorators.csrf import csrf_exempt
 from fiverr.models import FiverrReviewListWithEmail, FiverrCompleteGigDetails
 from freelancerr.models import FreelancerReviewListWithEmail
 from django.views.decorators.http import require_POST, require_GET
-from .models import Category, SubCategory, BrevoEventLogs
+from .models import Category, SubCategory, BrevoEventLogs, EmailOpenLog
 from send_mail.models import EmailConfig
 from .utils import AllListMarge, _ts_to_dt
 from django.utils import timezone
@@ -106,7 +106,7 @@ def brevo_email_status_webhook(request):
     EVENTS = {
         "request", "delivered", "hard_bounce", "soft_bounce",
         "blocked", "spam", "invalid_email", "deferred", "click", "error",
-        "opened", "unique_opened", "unsubscribed", "proxy_open"
+        "opened", "unique_opened", "unsubscribed", "proxy_open", "unique_proxy_open"
     }
     try:
         payload = json.loads(request.body.decode("utf-8"))
@@ -161,21 +161,36 @@ def gmail_tracking_api(request):
     # email_object.last_event = "opened"
     # print("email: ", email)
     
-    email = request.GET.get("email", "")
-    ua = request.META.get("HTTP_USER_AGENT", "")
-    ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
-    email_object = AllListMarge.search_by_email(email=email)
-    email_object.last_event = "opened"
-    email_object.save()
-
-    # TODO: এখানে আপনার DB তে ওপেন লগ/আপডেট রাখুন
-    # Example:
-    # EmailOpenLog.objects.create(email=email, msg_id=msg_id, ua=ua, ip=ip, opened_at=now())
-
+    print("Email tracking Webhook response!")
     resp = HttpResponse(PIXEL_BYTES, content_type="image/png", status=200)
     resp["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     resp["Pragma"] = "no-cache"
     resp["Expires"] = "0"
-    return resp
     
-    # return JsonResponse({"ok": True, "health": True})
+    email = request.GET.get("email", "")
+    server = request.GET.get("server", "")
+    ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+    try:
+        email_object = AllListMarge.search_by_email(email=email)
+        if EmailOpenLog.objects.filter(email=email).exists():
+            emailopenlog = EmailOpenLog.objects.get(email=email)
+            # if emailopenlog.open_count > 1:
+            #     last_event = "opened"
+            # else:
+            #     last_event = "unique_opened"
+            last_event = "opened"
+            emailopenlog.open_count += 1
+            emailopenlog.opened_at=timezone.now()
+            emailopenlog.mail_server_name=server
+            emailopenlog.save()
+        else:
+            EmailOpenLog.objects.create(email=email, ip=ip, opened_at=timezone.now(), mail_server_name=server, open_count=1)
+            last_event = "unique_opened"
+        
+        email_object.last_event = last_event
+        email_object.last_event_at = timezone.now()
+        email_object.save() 
+    except Exception as e:
+        print("e: ", e)
+        print("email: ", email)
+    return resp
