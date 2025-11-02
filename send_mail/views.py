@@ -17,6 +17,7 @@ from django.db.models import Q
 from django.template.loader import render_to_string
 from core.model_select_choice import EmailTemplatetype
 from django.utils import timezone
+from django.contrib.auth.mixins import LoginRequiredMixin
 from collections import deque
 from core.utils import AllListMarge
 from core.model_select_choice import MailConfigType
@@ -28,7 +29,7 @@ import requests
 import os
 from uuid import uuid4
 
-class Emaillist(View):
+class Emaillist(LoginRequiredMixin, View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
         if q:
             qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
@@ -104,7 +105,7 @@ def single_mail_check(request):
         return JsonResponse({"status": status, "message": msg})
     return render(request, "mail_verification/mail_check.html")
 
-class SendEmailFilteringList(View):
+class SendEmailFilteringList(LoginRequiredMixin, View):
     success = 0
     failed = 0
     cancel = 0
@@ -167,7 +168,7 @@ class SendEmailFilteringList(View):
             host.endswith("gmail.com") or
             host.endswith("googlemail.com")
         )
-        tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://dc763mcq-7275.asse.devtunnels.ms/api/mail-image/")
+        tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
         if gmail_smtp:
             html_body = f"""<!DOCTYPE html>
             <html>
@@ -381,11 +382,12 @@ class EmailSendWithServer(View):
         
         subject = (getattr(chh, "subject", None) or f"{sub_category_name} — Update").strip()
         safe_tracker_email = email_addr or "unknown@example.com"
-        
+        tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
+
         msg_body = f"""<!DOCTYPE html>
         <html>
         <body style="margin:0;padding:0;">
-            <img src="https://dc763mcq-7275.asse.devtunnels.ms/api/mail-image/?email={safe_tracker_email}" width="1" height="1" alt="" style="display:block;border:0;outline:0;text-decoration:none;">
+            <img src="{tracking_endpoint}?email={safe_tracker_email}" width="1" height="1" alt="" style="display:block;border:0;outline:0;text-decoration:none;">
 
             <p>Hi {username},</p>
             <p>{self.render_block(header_hook)}</p>
@@ -464,7 +466,7 @@ class EmailSendWithServer(View):
                 return JsonResponse({"ok": False, "message": str(e)}, status=404)
 
 
-class EmailTrackingList(View):
+class EmailTrackingList(LoginRequiredMixin, View):
     def apply_filters(self, qs, q, country, last_mail_server, category, sub_category, event, send_mail):
         if q:
             qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
