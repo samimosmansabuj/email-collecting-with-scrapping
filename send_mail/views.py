@@ -225,8 +225,8 @@ class SendEmailFilteringList(View):
             marge_data = self.get_marged_list(request)
             print("Total Data: >>>", len(marge_data), "<<<")
             
-            email_servers = deque(list(EmailConfig.objects.filter(server__in=["gmail_samim"])))
-            # email_servers = deque(list(EmailConfig.objects.filter(is_active=True, is_default=True, today_complete=False)))
+            # email_servers = deque(list(EmailConfig.objects.filter(server__in=["gmail_samim"])))
+            email_servers = deque(list(EmailConfig.objects.filter(is_active=True, is_default=True, today_complete=False)))
             random.shuffle(email_servers)
             if not email_servers:
                 return JsonResponse({"status": "error", "message": "Not Email Server Available!"}, status=400)
