@@ -104,7 +104,7 @@ def verified_fiverr_url(request):
 @csrf_exempt
 def brevo_email_status_webhook(request):
     EVENTS = {
-        "request", "delivered", "hard_bounce", "soft_bounce",
+        "delivered", "hard_bounce", "soft_bounce",
         "blocked", "spam", "invalid_email", "deferred", "click", "error",
         "opened", "unique_opened", "unsubscribed", "proxy_open", "unique_proxy_open"
     }
