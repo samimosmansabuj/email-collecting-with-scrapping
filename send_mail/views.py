@@ -27,7 +27,6 @@ from .models import EmailConfig
 import time
 import requests
 import os
-from uuid import uuid4
 
 class Emaillist(LoginRequiredMixin, View):
     def apply_filters(self, qs, q, country, proficiency, category, sub_category, repeated, send_mail):
@@ -162,14 +161,8 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         footer_hook = self.replace_service_name(body_or_empty(fh), sub_category_name, sender_name, sender_email)
         signature_hook = self.replace_service_name(body_or_empty(sh), sub_category_name, sender_name, sender_email)
 
-        host = (getattr(email_server, "host", "") or "").lower()
-        gmail_smtp = (
-            "gmail.com" in host or
-            host.endswith("gmail.com") or
-            host.endswith("googlemail.com")
-        )
-        tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
-        if gmail_smtp:
+        if self.is_gmail_smtp(email_server):
+            tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
             html_body = f"""<!DOCTYPE html>
             <html>
             <body style="margin:0;padding:0;">
@@ -189,7 +182,7 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         mime_msg['Subject'] = str(Header(subject or "Update", 'utf-8'))
         mime_msg['From'] = sender_email
         mime_msg['To'] = email_addr
-        if gmail_smtp:
+        if self.is_gmail_smtp(email_server):
             mime_msg.attach(MIMEText(html_body, 'html', 'utf-8'))
         else:
             mime_msg.attach(MIMEText(html_body, 'plain', 'utf-8'))
@@ -218,6 +211,15 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
         return marged_list
+    
+    def is_gmail_smtp(self, email_server):
+        host = (getattr(email_server, "host", "") or "").lower()
+        gmail_smtp = (
+            "gmail.com" in host or
+            host.endswith("gmail.com") or
+            host.endswith("googlemail.com")
+        )
+        return gmail_smtp
     
     def post(self, request, *args, **kwargs):
         try:
@@ -284,6 +286,7 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
                     
                     self.success += 1
                     email_object.send_mail = True
+                    if self.is_gmail_smtp(email_server): email_object.last_event = "delivered"
                     email_object.last_mail_server = email_server
                     email_object.last_sent_at = timezone.now()
                     email_object.save()
@@ -471,28 +474,43 @@ class EmailTrackingList(LoginRequiredMixin, View):
         if q:
             qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
         if country: qs = qs.filter(country=country)
-        if last_mail_server: qs = qs.filter(last_mail_server__id=last_mail_server)
+        if last_mail_server: qs = qs.filter(last_mail_server=last_mail_server)
         if category: qs = qs.filter(category__slug=category)
         if sub_category: qs = qs.filter(sub_category__slug=sub_category)
         if event: qs = qs.filter(last_event=event)
         if send_mail in ("0", "1"): qs = qs.filter(send_mail=bool(int(send_mail)))
         return qs
     
+    def get_mail_server(self, id):
+        try:
+            return EmailConfig.objects.get(id=id)
+        except:
+            return None
+    
     def get_marged_list(self):
         q           = (self.request.GET.get('q') or '').strip()
         country     = self.request.GET.get('country') or ''
-        last_mail_server = self.request.GET.get('last_mail_server') or ''
+        last_mail_server_id = self.request.GET.get('last_mail_server') or ''
+        last_mail_server = self.get_mail_server(last_mail_server_id)
         category    = self.request.GET.get('category') or ''
         sub_category = self.request.GET.get('sub_category') or ''
         event    = self.request.GET.get('event')
         send_mail    = self.request.GET.get('send_mail', "1")
-        
         fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
         freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
         
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
         return marged_list
+    
+    def is_gmail_smtp(self, email_server):
+        host = (getattr(email_server, "host", "") or "").lower()
+        gmail_smtp = (
+            "gmail.com" in host or
+            host.endswith("gmail.com") or
+            host.endswith("googlemail.com")
+        )
+        return gmail_smtp
     
     def get(self, request, *args, **kwargs):
         page_number = request.GET.get('page') or 1
