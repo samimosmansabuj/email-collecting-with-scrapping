@@ -317,7 +317,6 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
 
-
 class EmailSendWithServer(View):
     def get(self, request, *args, **kwargs):
         mail_server = EmailConfig.objects.filter(is_active=True)
@@ -325,7 +324,6 @@ class EmailSendWithServer(View):
     
     def replace_service_name(self, text: str, service=None, name=None, email=None) -> str:
         text = text or ""
-
         if name is not None:
             text = re.sub(r"\[\s*my_name\s*\]", str(name), text, flags=re.IGNORECASE)
         if service is not None:
@@ -390,16 +388,24 @@ class EmailSendWithServer(View):
         msg_body = f"""<!DOCTYPE html>
         <html>
         <body style="margin:0;padding:0;">
-            <img src="{tracking_endpoint}?email={safe_tracker_email}" width="1" height="1" alt="" style="display:block;border:0;outline:0;text-decoration:none;">
-
-            <p>Hi {username},</p>
-            <p>{self.render_block(header_hook)}</p>
-            <p>{self.render_block(content_hook)}</p>
-            <p>{self.render_block(footer_hook)}</p>
-            <p>{self.render_block(signature_hook)}</p>
+            <p style="margin:auto;">Hi {username},</p>
+            {header_hook}
+            {self.render_block(content_hook)}
+            {self.render_block(footer_hook)}
+            {self.render_block(signature_hook)}
+            <img src="{tracking_endpoint}?email={safe_tracker_email}&server={email_server.server}" width="1" height="1" alt="" style="display:block;border:0;outline:0;text-decoration:none;">
         </body>
         </html>"""
         return msg_body, subject if chh else None, email_addr
+    
+    def is_gmail_smtp(self, email_server):
+        host = (getattr(email_server, "host", "") or "").lower()
+        gmail_smtp = (
+            "gmail.com" in host or
+            host.endswith("gmail.com") or
+            host.endswith("googlemail.com")
+        )
+        return gmail_smtp
     
     def post(self, request, *args, **kwargs):
         server = request.POST.get('mail_server')
@@ -458,6 +464,7 @@ class EmailSendWithServer(View):
                 if email_object is object:
                     email_object.send_mail = True
                     email_object.last_mail_server = mail_server
+                    if self.is_gmail_smtp(mail_server): email_object.last_event = "delivered"
                     email_object.last_sent_at = timezone.now()
                     email_object.save()
                 
@@ -498,8 +505,8 @@ class EmailTrackingList(LoginRequiredMixin, View):
         category    = self.request.GET.get('category') or ''
         sub_category = self.request.GET.get('sub_category') or ''
         event    = self.request.GET.get('event')
-        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event)
-        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event)
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.filter(send_mail=True), q, country, last_mail_server, category, sub_category, event)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.filter(send_mail=True), q, country, last_mail_server, category, sub_category, event)
         
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
