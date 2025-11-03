@@ -477,7 +477,11 @@ class EmailTrackingList(LoginRequiredMixin, View):
         if last_mail_server: qs = qs.filter(last_mail_server=last_mail_server)
         if category: qs = qs.filter(category__slug=category)
         if sub_category: qs = qs.filter(sub_category__slug=sub_category)
-        if event: qs = qs.filter(last_event=event)
+        if event:
+            if event == "None":
+                qs = qs.filter(last_event__isnull=True)
+            else:
+                qs = qs.filter(last_event=event)
         if send_mail in ("0", "1"): qs = qs.filter(send_mail=bool(int(send_mail)))
         return qs
     
