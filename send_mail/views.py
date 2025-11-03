@@ -470,7 +470,7 @@ class EmailSendWithServer(View):
 
 
 class EmailTrackingList(LoginRequiredMixin, View):
-    def apply_filters(self, qs, q, country, last_mail_server, category, sub_category, event, send_mail):
+    def apply_filters(self, qs, q, country, last_mail_server, category, sub_category, event):
         if q:
             qs = qs.filter(Q(email__icontains=q) | Q(username__icontains=q))
         if country: qs = qs.filter(country=country)
@@ -482,7 +482,6 @@ class EmailTrackingList(LoginRequiredMixin, View):
                 qs = qs.filter(last_event__isnull=True)
             else:
                 qs = qs.filter(last_event=event)
-        if send_mail in ("0", "1"): qs = qs.filter(send_mail=bool(int(send_mail)))
         return qs
     
     def get_mail_server(self, id):
@@ -499,9 +498,8 @@ class EmailTrackingList(LoginRequiredMixin, View):
         category    = self.request.GET.get('category') or ''
         sub_category = self.request.GET.get('sub_category') or ''
         event    = self.request.GET.get('event')
-        send_mail    = self.request.GET.get('send_mail', "1")
-        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
-        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event, send_mail)
+        fiverr = self.apply_filters(FiverrReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event)
+        freelancer = self.apply_filters(FreelancerReviewListWithEmail.objects.all(), q, country, last_mail_server, category, sub_category, event)
         
         marged_list = list(chain(fiverr, freelancer))
         marged_list.sort(key=lambda o: getattr(o, 'created_at', None) or getattr(o, 'id'), reverse=True)
@@ -522,7 +520,7 @@ class EmailTrackingList(LoginRequiredMixin, View):
         all_list = self.get_marged_list()
         
         has_filters = any(request.GET.get(k) not in (None, '') for k in
-                      ['q','country','price_tag','last_mail_server','category','sub_category','repeated', 'page'])
+                      ['q','country','last_mail_server','category','sub_category', 'last_event', 'page'])
         paginator = Paginator(all_list, per_page)
         page_obj = paginator.get_page(page_number)
         
@@ -539,14 +537,14 @@ class EmailTrackingList(LoginRequiredMixin, View):
                 "count": paginator.count,
                 "has_filters": has_filters,
             })
-
+        
         context = {
             "data_list": page_obj.object_list,
             "count": paginator.count,
             "has_filters": has_filters,
             "page_obj": page_obj,
-            "countries": FiverrReviewListWithEmail.objects.values_list("country", flat=True).distinct().union(
-                FreelancerReviewListWithEmail.objects.values_list("country", flat=True).distinct().order_by("country")
+            "countries": FiverrReviewListWithEmail.objects.filter(send_mail=True).values_list("country", flat=True).distinct().union(
+                FreelancerReviewListWithEmail.objects.filter(send_mail=True).values_list("country", flat=True).distinct().order_by("country")
             ),
             "last_events": FiverrReviewListWithEmail.objects.values_list("last_event", flat=True).distinct().union(
                 FreelancerReviewListWithEmail.objects.values_list("last_event", flat=True).distinct().order_by("last_event")

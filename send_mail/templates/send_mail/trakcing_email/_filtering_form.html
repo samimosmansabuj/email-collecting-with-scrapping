@@ -47,14 +47,6 @@
             {% endfor %}
         </select>
     </div>
-    <div>
-        <label for="send_mail" style="font-size:12px;color:#243447;">Mail Send</label>
-        <select id="send_mail" name="send_mail" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
-            <option value="">All</option>
-            <option value="1" {% if request.GET.repeated == '1' %}selected{% endif %}>Yes</option>
-            <option value="0" {% if request.GET.repeated == '0' %}selected{% endif %}>No</option>
-        </select>
-    </div>
 
     <div style="grid-column: span 4 / auto; display:flex; gap:8px;">
         <button type="submit" class="btn btn-primary">Apply Filters</button>
