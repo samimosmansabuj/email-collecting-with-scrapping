@@ -45,8 +45,13 @@ class InvalidUsernameEmail(models.Model):
     def __str__(self):
         return self.username
 
-class BrevoEventLogs(models.Model):
-    mail_server_name = models.CharField(max_length=50, blank=True, null=True)
+class WebHookServer(models.TextChoices):
+    BREVO = "brevo"
+    MAILEROO = "maileroo"
+
+class WebhookEventLogs(models.Model):
+    server = models.CharField(max_length=25, choices=WebHookServer, default=WebHookServer.BREVO)
+    server_account = models.CharField(max_length=50, blank=True, null=True)
     webhook_json = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now=True)
     updated_at = models.DateTimeField(auto_now_add=True)
@@ -54,7 +59,7 @@ class BrevoEventLogs(models.Model):
     def __str__(self):
         email = self.webhook_json.get("email")
         event = self.webhook_json.get("event")
-        return f"{self.pk} | {self.mail_server_name} | {email} | {event}"
+        return f"{self.pk} | {self.server} | {self.server_account} | {email} | {event}"
 
 class EmailOpenLog(models.Model):
     mail_server_name = models.CharField(max_length=50, blank=True, null=True)

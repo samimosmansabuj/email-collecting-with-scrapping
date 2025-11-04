@@ -102,7 +102,7 @@ class FiverrReviewListWithEmail(models.Model):
             self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_03
             self.lead_stage = LEAD_STAGE.FOLLOW_UP
             self.follow_up = True
-        elif event in {"click"}:
+        elif event in {"click", "clicked"}:
             self.click_count = (self.click_count or 0) + 1
             self.follow_up_stage = FOLLOW_UP_STAGE.STAGE_04
             self.lead_stage = LEAD_STAGE.RESPONSE

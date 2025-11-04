@@ -415,7 +415,6 @@ class EmailSendWithServer(View):
         print("*******************************************************")
         email_object = AllListMarge.search_by_email(email=emailInput)
         if not email_object:
-            # return JsonResponse({"ok": False, "message":"Mail Object Not Found!"}, status=404)
             email_only = emailInput
         
         try:
@@ -423,6 +422,27 @@ class EmailSendWithServer(View):
         except EmailConfig.DoesNotExist:
             print("*******************************************************")
             return JsonResponse({"ok": False, "message": "Host not found"}, status=404)
+        
+        # url = "https://smtp.maileroo.com/api/v2/emails"
+        # api_key = "14ef21382229e376e614697dec77e7b58c390c294161662499c18e4ad3980175"
+        # html_body, subject, email_addr = self.get_dynamical_block_update(email_object or email_only, mail_server)
+        # payload = {
+        #     "from": {"address": mail_server.email, "display_name": "Samim Osman"},
+        #     "to": [{"address": emailInput, "display_name": "Samim Osman"}],
+        #     "reply_to": {"address": "samim.quantumdev@gmail.com","display_name": "Samim Osman"},
+        #     "subject": subject,
+        #     "html": html_body,
+        #     "plain": html_body,
+        #     "tracking": True
+        # }
+        # headers = {
+        #     "Content-Type": "application/json",
+        #     "Authorization": f"Bearer {api_key}"
+        # }
+        # response = requests.post(url=url, json=payload, headers=headers)
+        # print(response.status_code, response.json())
+        # print("*******************************************************")
+        # return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
         
         if mail_server.type == MailConfigType.API:
             api_key = mail_server.api_key
@@ -447,8 +467,9 @@ class EmailSendWithServer(View):
                 
                 mime_msg = MIMEMultipart('alternative')
                 mime_msg['Subject'] = str(Header(subject or "Update", 'utf-8'))
-                mime_msg['From'] = mail_server.email
+                mime_msg['From'] = formataddr((mail_server.name, mail_server.email))
                 mime_msg['To'] = email_addr
+                mime_msg["Reply-To"] = formataddr(("Samim Osman", "samim.quantumdev@gmail.com"))
                 mime_msg.attach(MIMEText(html_body, 'html', 'utf-8'))
 
                 print(f"Connect to Mail Server  >>> {mail_server}")

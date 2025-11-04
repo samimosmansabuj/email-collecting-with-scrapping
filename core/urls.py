@@ -1,6 +1,7 @@
 from django.urls import path
 from django.contrib.auth import views as auth_views
 from .views import *
+from .webhook_views import *
 
 urlpatterns = [
     path('', home, name='home_page'),
@@ -16,6 +17,6 @@ urlpatterns = [
     path("api/fiverr-url-verify/", verified_fiverr_url, name="api-fiverrurlverify"),
     
     #Brevo Mail Status Webhook
-    path("api/brevo-webhook/", brevo_email_status_webhook, name="brevo_email_status_webhook"),
+    path("api/webhook/<str:server>/", webhook_events_log_views, name="brevo_email_status_webhook"),
     path("api/mail-image/", gmail_tracking_api, name="gmail_tracking_api"),
 ]
