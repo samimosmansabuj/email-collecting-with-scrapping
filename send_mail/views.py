@@ -316,7 +316,6 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             print("eeee:", str(e))
             return JsonResponse({"status": "error", "message": str(e)}, status=400)
 
-
 class EmailSendWithServer(View):
     def get(self, request, *args, **kwargs):
         mail_server = EmailConfig.objects.filter(is_active=True)
@@ -388,7 +387,7 @@ class EmailSendWithServer(View):
         msg_body = f"""<!DOCTYPE html>
         <html>
         <body style="margin:0;padding:0;">
-            <p style="margin:auto;">Hi {username},</p>
+            <p style="margin:auto;">Hello Dear,</p>
             {header_hook}
             {self.render_block(content_hook)}
             {self.render_block(footer_hook)}
@@ -495,7 +494,6 @@ class EmailSendWithServer(View):
             except Exception as e:
                 print("*******************************************************")
                 return JsonResponse({"ok": False, "message": str(e)}, status=404)
-
 
 class EmailTrackingList(LoginRequiredMixin, View):
     def apply_filters(self, qs, q, country, last_mail_server, category, sub_category, event):

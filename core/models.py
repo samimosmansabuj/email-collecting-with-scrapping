@@ -70,3 +70,9 @@ class EmailOpenLog(models.Model):
     
     def __str__(self):
         return f"{self.pk} | {self.mail_server_name} | {self.email} | {self.open_count}"
+
+
+# class Role(models.Model):
+#     title = models.CharField(max_length=55)
+    
+
