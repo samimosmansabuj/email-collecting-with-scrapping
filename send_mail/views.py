@@ -131,6 +131,19 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         
         return text.strip()
     
+    def validate_hooks(self, header_hook, content_hook, footer_hook, signature_hook):
+        hooks = {
+            "header_hook": header_hook,
+            "content_hook": content_hook,
+            "footer_hook": footer_hook,
+            "signature_hook": signature_hook,
+        }
+
+        for name, value in hooks.items():
+            if value is None or len(str(value).split()) < 15:
+                raise ValueError(f"{name} must be at least 15 words (got: {value!r})")
+
+    
     def get_dynamical_block_update(self, email_object, email_server):
         # ---------- normalize recipient ----------
         if email_object:
@@ -145,11 +158,11 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             sub_category_name = getattr(sc, "name", None) if sc else None
         
         # ---------- fetch templates safely ----------
-        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK).first()
+        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK, category=email_object.category).first()
         ch = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK, category=email_object.category)
         chh = random.choice(list(ch)) if ch.exists() else None
-        fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK).first()
-        sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK).first()
+        fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK, category=email_object.category).first()
+        sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK, category=email_object.category).first()
         
         def body_or_empty(x): return (getattr(x, "body", "") or "").strip()
         sender_name = getattr(email_server, "name", "") or ""
@@ -160,13 +173,14 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         content_hook = self.replace_service_name(body_or_empty(chh), sub_category_name, sender_name, sender_email)
         footer_hook = self.replace_service_name(body_or_empty(fh), sub_category_name, sender_name, sender_email)
         signature_hook = self.replace_service_name(body_or_empty(sh), sub_category_name, sender_name, sender_email)
-
+        self.validate_hooks(header_hook, content_hook, footer_hook, signature_hook)
+        
         if self.is_gmail_smtp(email_server):
             tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
             html_body = f"""<!DOCTYPE html>
             <html>
             <body style="margin:0;padding:0;">
-                <p style="margin:auto;">Hi {username},</p>
+                <p style="margin:auto;">Hi {username} 👋,</p>
                 {header_hook}
                 {self.render_block(content_hook)}
                 {self.render_block(footer_hook)}
@@ -175,8 +189,8 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             </body>
             </html>"""
         else:
-            html_body = f"""Hi {username},\n{header_hook}\n\n{content_hook if content_hook else ""}\n\n{footer_hook}\n\n{signature_hook}"""
-        
+            html_body = f"""Hi {username} 👋,\n{header_hook}\n\n{content_hook if content_hook else ""}\n\n{footer_hook}\n\n{signature_hook}"""
+
         subject = (getattr(chh, "subject", None) or f"{email_object.sub_category.name} — Update").strip()
         mime_msg = MIMEMultipart('alternative')
         mime_msg['Subject'] = str(Header(subject or "Update", 'utf-8'))
