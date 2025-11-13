@@ -1,0 +1,25 @@
+{% for data in data_list %}
+<tr>
+  <td>{{ forloop.counter0|add:1|stringformat:"02d" }}</td>
+  <td>
+    {% for cat in data.category.all %}
+    {{ cat }},
+    {% endfor %}
+  </td>
+  <td>{{ data.type }}</td>
+  <td>{{ data.subject }}</td>
+  <td>{{ data.body }}</td>
+  <td>
+    <!-- {{ data.is_active }} -->
+    {% if data.is_active == True %}
+    <a href="{% url 'email_template_action' data.id 1 %}">On</a>
+    {% else %}
+    <a href="{% url 'email_template_action' data.id 0 %}">Off</a>
+    {% endif %}
+  </td>
+</tr>
+{% empty %}
+<tr>
+  <td colspan="9" class="no-data">No matches for the selected filters.</td>
+</tr>
+{% endfor %}

@@ -1,0 +1,125 @@
+<!-- Include Filter Data  -->
+<form id="filterForm" method="get" class="filter-bar" style="margin:5px 0; display:grid; gap:10px; grid-template-columns: repeat(11, minmax(100px, 1fr)); align-items:end">
+    <!-- <div>
+        <label for="q" style="font-size:12px;color:#243447;">Search</label>
+        <input id="q" name="q" value="{{ request.GET.q }}" placeholder="email / review"
+            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+    </div> -->
+
+    <div>
+        <label for="type" style="font-size:12px;color:#243447;">Type</label>
+        <select id="type" name="type" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            {% for type in types %}
+            <option value="{{ type }}" {% if request.GET.type == type %}selected{% endif %}>{{ type }}</option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div>
+        <label for="category" style="font-size:12px;color:#243447;">Category</label>
+        <select id="category" name="category" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            {% for cat in categories %}
+            <option value="{{ cat.slug }}" {% if request.GET.category == cat.slug %}selected{% endif %}>{{ cat.name }}</option>
+            {% endfor %}
+        </select>
+    </div>
+    
+    <div>
+        <label for="is_active" style="font-size:12px;color:#243447;">Active</label>
+        <select id="is_active" name="is_active" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;">
+            <option value="">All</option>
+            <option value="1" {% if request.GET.is_active == '1' %}selected{% endif %}>Yes</option>
+            <option value="0" {% if request.GET.is_active == '0' %}selected{% endif %}>No</option>
+        </select>
+    </div>
+
+    <div style="grid-column: span 4 / auto; display:flex; gap:8px;">
+        <button type="submit" class="btn btn-primary">Apply Filters</button>
+        <a href="." class="btn" style="border:1px solid #ddd;">Reset</a>
+    </div>
+</form>
+
+<script>
+  (function () {
+    const form   = document.getElementById("filterForm");
+    const overlay = document.getElementById("ajaxLoading");
+    const hint   = document.getElementById("result_hint");
+
+    if (!form || !btn) return;
+
+    let currentController = null;
+    let loaderTimer = null;
+
+    function getCookie(name) {
+      const value = `; ${document.cookie}`;
+      const parts = value.split(`; ${name}=`);
+      if (parts.length === 2) return parts.pop().split(';').shift();
+      return null;
+    }
+
+    function showLoaderDelayed() {
+      clearTimeout(loaderTimer);
+      loaderTimer = setTimeout(() => {
+        overlay && overlay.classList.add('show');
+        Array.from(form.elements).forEach(el => el.disabled = true);
+        btn.disabled = true;
+      }, 150);
+    }
+    function hideLoader() {
+      clearTimeout(loaderTimer);
+      overlay && overlay.classList.remove('show');
+      Array.from(form.elements).forEach(el => el.disabled = false);
+      btn.disabled = false;
+    }
+
+    async function postForm(url) {
+      if (!url) return;
+    
+      if (currentController) currentController.abort();
+      currentController = new AbortController();
+
+      const fd = new FormData(form);
+      fd.delete('page');
+      
+      showLoaderDelayed();
+
+      try {
+        const res = await fetch(url, {
+          method: 'POST',
+          body: fd,
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': getCookie('csrftoken') || ''
+          },
+          signal: currentController.signal,
+          cache: 'no-store'
+        });
+
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (hint) {
+          const msg = data.message || `Done. Processed: ${data.processed ?? 0}`;
+          hint.textContent = msg;
+        }
+
+      } catch (err) {
+        if (err.name !== 'AbortError') {
+          console.error(err);
+          if (hint) hint.textContent = 'Mail send failed. Please try again.';
+        }
+      } finally {
+        hideLoader();
+        currentController = null;
+      }
+    }
+
+    btn.addEventListener('click', function () {
+      const url = btn.getAttribute('data-post-url');
+      postForm(url);
+    });
+  })();
+</script>
+

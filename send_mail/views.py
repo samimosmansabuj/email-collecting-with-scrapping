@@ -1,4 +1,4 @@
-from django.shortcuts import render
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import JsonResponse
 from .utils import EmailCheck
 from .models import EmailConfig, EmailAttachment, EmailTemplateContent
@@ -156,12 +156,17 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             sc = getattr(email_object, "sub_category", None)
             sub_category_name = getattr(sc, "name", None) if sc else None
         
-        # ---------- fetch templates safely ----------
-        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK, category=email_object.category).first()
-        ch = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK, category=email_object.category)
-        chh = random.choice(list(ch)) if ch.exists() else None
-        fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK, category=email_object.category).first()
-        sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK, category=email_object.category).first()
+        # ---------- fetch templates list safely ----------
+        h_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK, category=email_object.category)
+        c_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK, category=email_object.category)
+        f_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK, category=email_object.category)
+        s_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK, category=email_object.category)
+        
+        # ---------select random hooks from the list---------
+        hh = random.choice(list(h_hooks)) if h_hooks.exists() else None
+        ch = random.choice(list(c_hooks)) if c_hooks.exists() else None
+        fh = random.choice(list(f_hooks)) if f_hooks.exists() else None
+        sh = random.choice(list(s_hooks)) if s_hooks.exists() else None
         
         def body_or_empty(x): return (getattr(x, "body", "") or "").strip()
         sender_name = getattr(email_server, "name", "") or ""
@@ -169,18 +174,17 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         
         # ---------- replace safely (text may be empty) ----------
         header_hook = self.replace_service_name(body_or_empty(hh), sub_category_name, sender_name, sender_email)
-        content_hook = self.replace_service_name(body_or_empty(chh), sub_category_name, sender_name, sender_email)
+        content_hook = self.replace_service_name(body_or_empty(ch), sub_category_name, sender_name, sender_email)
         footer_hook = self.replace_service_name(body_or_empty(fh), sub_category_name, sender_name, sender_email)
         signature_hook = self.replace_service_name(body_or_empty(sh), sub_category_name, sender_name, sender_email)
         self.validate_hooks(header_hook, content_hook, footer_hook, signature_hook)
-        
-        # {username} 👋
+        before_header = ["Hello Sir", "Hello 👋", "Hi there", "Hello Sir", "Hi Sir", "Hello", "Hello Sir", "Hi", "Hello there", "Hey there", "Hi 👋", "Greetings 👋"]
         if self.is_gmail_smtp(email_server):
             tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
             html_body = f"""<!DOCTYPE html>
             <html>
             <body style="margin:0;padding:0;">
-                <p style="margin:auto;">Hi Sir,</p>
+                <p style="margin:auto;">{random.choice(before_header)},</p>
                 {header_hook}
                 {self.render_block(content_hook)}
                 {self.render_block(footer_hook)}
@@ -189,9 +193,9 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
             </body>
             </html>"""
         else:
-            html_body = f"""Hi Sir,\n{header_hook}\n\n{content_hook if content_hook else ""}\n\n{footer_hook}\n\n{signature_hook}"""
+            html_body = f"""{random.choice(before_header)},\n{header_hook}\n\n{content_hook if content_hook else ""}\n\n{footer_hook}\n\n{signature_hook}"""
 
-        subject = (getattr(chh, "subject", None) or f"{email_object.sub_category.name} — Update").strip()
+        subject = (getattr(ch, "subject", None) or f"{email_object.sub_category.name} — Update").strip()
         mime_msg = MIMEMultipart('alternative')
         mime_msg['Subject'] = str(Header(subject or "Update", 'utf-8'))
         mime_msg['From'] = sender_email
@@ -356,12 +360,25 @@ class EmailSendWithServer(View):
             html.append(f"<p>{p.strip().replace('\r', '').replace('\n', '<br>')}</p>")
         return "\n".join(html)
     
+    def validate_hooks(self, header_hook, content_hook, footer_hook, signature_hook):
+        hooks = {
+            "header_hook": header_hook,
+            "content_hook": content_hook,
+            "footer_hook": footer_hook,
+            "signature_hook": signature_hook,
+        }
+
+        for name, value in hooks.items():
+            if value is None or len(str(value).split()) < 15:
+                raise ValueError(f"{name} must be at least 15 words (got: {value!r})")
+    
     def get_dynamical_block_update(self, email_object, email_server):
         # ---------- normalize recipient ----------
         if isinstance(email_object, str) and email_object:
             username = (email_object.split("@")[0] or "User").strip()
             sub_category_name = None
             email_addr = email_object
+            category = Category.objects.all().first()
         elif email_object:
             email_addr = getattr(email_object, "email", "") or ""
             username = (
@@ -370,6 +387,7 @@ class EmailSendWithServer(View):
                 or (email_addr.split("@")[0] if "@" in email_addr else None)
                 or "User"
             )
+            category = email_object.category
             sc = getattr(email_object, "sub_category", None)
             sub_category_name = getattr(sc, "name", None) if sc else None
         else:
@@ -377,31 +395,38 @@ class EmailSendWithServer(View):
             sub_category_name = None
             email_addr = ""
         
-        # ---------- fetch templates safely ----------
-        hh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK).first()
-        ch = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK)
-        chh = random.choice(list(ch)) if ch.exists() else None
-        fh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK).first()
-        sh = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK).first()
+        # ---------- fetch templates list safely ----------
+        h_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.HEADER_HOOK, category=category)
+        c_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.CONTENT_HOOK, category=category)
+        f_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.FOOTER_HOOK, category=category)
+        s_hooks = EmailTemplateContent.objects.filter(is_active=True, type=EmailTemplatetype.SIGNATURE_HOOK, category=category)
         
+        # ---------select random hooks from the list---------
+        hh = random.choice(list(h_hooks)) if h_hooks.exists() else None
+        ch = random.choice(list(c_hooks)) if c_hooks.exists() else None
+        fh = random.choice(list(f_hooks)) if f_hooks.exists() else None
+        sh = random.choice(list(s_hooks)) if s_hooks.exists() else None
+
         def body_or_empty(x): return (getattr(x, "body", "") or "").strip()
         sender_name = getattr(email_server, "name", "") or ""
         sender_email = getattr(email_server, "email", "") or ""
         
         # ---------- replace safely (text may be empty) ----------
+        before_header = ["Hello Sir", "Hello 👋", "Hi there", "Hello Sir", "Hi Sir", "Hello", "Hello Sir", "Hi", "Hello there", "Hey there", "Hi 👋", "Greetings 👋"]
         header_hook = self.replace_service_name(body_or_empty(hh), sub_category_name, sender_name, sender_email)
-        content_hook = self.replace_service_name(body_or_empty(chh), sub_category_name, sender_name, sender_email)
+        content_hook = self.replace_service_name(body_or_empty(ch), sub_category_name, sender_name, sender_email)
         footer_hook = self.replace_service_name(body_or_empty(fh), sub_category_name, sender_name, sender_email)
         signature_hook = self.replace_service_name(body_or_empty(sh), sub_category_name, sender_name, sender_email)
         
-        subject = (getattr(chh, "subject", None) or f"{sub_category_name} — Update").strip()
+        subject = (getattr(ch, "subject", None) or f"{sub_category_name} — Update").strip()
         safe_tracker_email = email_addr or "unknown@example.com"
         tracking_endpoint = os.getenv("TRACKING_ENDPOINT", "https://emailscraping.mnimedu.com/api/mail-image/")
+        self.validate_hooks(header_hook, content_hook, footer_hook, signature_hook)
 
         msg_body = f"""<!DOCTYPE html>
         <html>
         <body style="margin:0;padding:0;">
-            <p style="margin:auto;">Hello Dear,</p>
+            <p style="margin:auto;">{random.choice(before_header)},</p>
             {header_hook}
             {self.render_block(content_hook)}
             {self.render_block(footer_hook)}
@@ -409,7 +434,7 @@ class EmailSendWithServer(View):
             <img src="{tracking_endpoint}?email={safe_tracker_email}&server={email_server.server}" width="1" height="1" alt="" style="display:block;border:0;outline:0;text-decoration:none;">
         </body>
         </html>"""
-        return msg_body, subject if chh else None, email_addr
+        return msg_body, subject if ch else None, email_addr
     
     def is_gmail_smtp(self, email_server):
         host = (getattr(email_server, "host", "") or "").lower()
@@ -435,27 +460,6 @@ class EmailSendWithServer(View):
         except EmailConfig.DoesNotExist:
             print("*******************************************************")
             return JsonResponse({"ok": False, "message": "Host not found"}, status=404)
-        
-        # url = "https://smtp.maileroo.com/api/v2/emails"
-        # api_key = "14ef21382229e376e614697dec77e7b58c390c294161662499c18e4ad3980175"
-        # html_body, subject, email_addr = self.get_dynamical_block_update(email_object or email_only, mail_server)
-        # payload = {
-        #     "from": {"address": mail_server.email, "display_name": "Samim Osman"},
-        #     "to": [{"address": emailInput, "display_name": "Samim Osman"}],
-        #     "reply_to": {"address": "samim.quantumdev@gmail.com","display_name": "Samim Osman"},
-        #     "subject": subject,
-        #     "html": html_body,
-        #     "plain": html_body,
-        #     "tracking": True
-        # }
-        # headers = {
-        #     "Content-Type": "application/json",
-        #     "Authorization": f"Bearer {api_key}"
-        # }
-        # response = requests.post(url=url, json=payload, headers=headers)
-        # print(response.status_code, response.json())
-        # print("*******************************************************")
-        # return JsonResponse({"ok": True, "message": "Mail Send Successfully!"})
         
         if mail_server.type == MailConfigType.API:
             api_key = mail_server.api_key
@@ -595,5 +599,62 @@ class EmailTrackingList(LoginRequiredMixin, View):
         
         return render(request, "send_mail/trakcing_email/tracking_email_list.html", context)
 
+class EmailTemplateView(LoginRequiredMixin, View):
+    def get_template_list(self):
+        q           = (self.request.GET.get('q') or '').strip()
+        type        = self.request.GET.get('type') or ''
+        category    = self.request.GET.get('category') or ''
+        is_active   = self.request.GET.get('is_active')
+        return self.apply_filters(EmailTemplateContent.objects.all(), q, type, category, is_active)
+    
+    def apply_filters(self, qs, q, type, category, is_active):
+        if q:
+            qs = qs.filter(Q(type__icontains=q) | Q(category__icontains=q))
+        if type: qs = qs.filter(type=type)
+        if category: qs = qs.filter(category__slug=category)
+        if is_active in ("0", "1"): qs = qs.filter(is_active=bool(int(is_active)))
+        return qs
+    
+    def get(self, request, *args, **kwargs):
+        page_number = request.GET.get('page') or 1
+        per_page    = int(request.GET.get('per_page') or 100)
+        all_list = self.get_template_list()
+        
+        has_filters = any(request.GET.get(k) not in (None, '') for k in
+                      ['q','category','page','type','is_active'])
+        paginator = Paginator(all_list, per_page)
+        page_obj = paginator.get_page(page_number)
+        
+        wants_partial = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.GET.get('partial') == '1'
+        if wants_partial:
+            rows_html = render_to_string("email_template/partials/_template_rows.html", {"data_list": page_obj.object_list})
+            pagination_html = render_to_string("email_template/partials/_pagination.html", {
+                "page_obj": page_obj,
+                "request": request
+            })
+            return JsonResponse({
+                "rows_html": rows_html,
+                "pagination_html": pagination_html,
+                "count": paginator.count,
+                "has_filters": has_filters,
+            })
+        
+        context = {
+            "data_list": page_obj.object_list,
+            "count": paginator.count,
+            "has_filters": has_filters,
+            "page_obj": page_obj,
+            "types": EmailTemplateContent.objects.filter().values_list("type", flat=True).distinct(),
+            "categories": Category.objects.all()            
+        }
+        return render(request, "email_template/template_list.html", context)
 
-
+def emailtTemplateAction(request, id, action):
+    template = get_object_or_404(EmailTemplateContent, id=id)
+    if template:
+        if int(action) == 1:
+            template.is_active = False
+        elif int(action) == 0:
+            template.is_active = True
+        template.save()
+    return redirect(request.META.get('HTTP_REFERER'))
