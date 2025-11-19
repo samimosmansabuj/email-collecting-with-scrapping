@@ -269,7 +269,7 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
                 # email_servers.rotate(-1)
                 # print("*****************************************************************************************************")
                 
-                time.sleep(1)
+                time.sleep(4)
                 print(f"****************************************--#{loop} Start--***************************************************")
                 attempts = 0
                 last_exc = None
@@ -316,7 +316,7 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
                     # email_servers.rotate(-1)
                     self.failed += 1
                 print("*****************************************************************************************************")
-                time.sleep(1)
+                time.sleep(7)
                 loop += 1
             
             status_count = {
