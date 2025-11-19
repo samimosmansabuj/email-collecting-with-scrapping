@@ -140,8 +140,8 @@ class SendEmailFilteringList(LoginRequiredMixin, View):
         }
 
         for name, value in hooks.items():
-            if value is None or len(str(value).split()) < 15:
-                raise ValueError(f"{name} must be at least 15 words (got: {value!r})")
+            if value is None or len(str(value).split()) < 10:
+                raise ValueError(f"{name} must be at least 10 words (got: {value!r})")
     
     def get_dynamical_block_update(self, email_object, email_server):
         # ---------- normalize recipient ----------
